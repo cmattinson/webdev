@@ -1,0 +1,98 @@
+// CMPT 315 (Winter 2019)
+// Lab #2: Introduction to gorilla/mux
+//
+// For this lab, use gorilla/mux to implement the following three routes:
+//
+// (1) GET requests to /api/v1/var/n cause a lookup of n in the "vars" map,
+//     and if the string has a length greater than 0, the server prints
+//     the corresponding string to the ResponseWriter.
+//
+//     String with a positive length: 200 (OK)
+//     String with a length of zero:  204 (No Content)
+//     A bad request:                 400 (Bad Request)
+//
+// (2) DELETE requests to /api/v1/var/n cause a lookup of n in the "vars"
+//     map, and if the string has a length greater than 0, the server sets
+//     the string to the empty string and returns 204. If the length is
+//     already 0, it returns 400 (Bad request).
+//
+//     On success: 204 (No Content)
+//     On failure: 400 (Bad Request)
+//
+// (3) POST requests to /api/v1/var/n cause the server to set the string
+//     at position n to the string provided in the non-0 length body of the
+//     request. On success, it returns the string the response.
+//
+//     On success: 200 (OK)
+//     On failure: 400 (Bad Request)
+//
+// All other routes may generate a 404 (Not Found).
+
+package main
+
+import (
+	"fmt"
+	"net/http"
+	"sync"
+
+	"github.com/gorilla/mux"
+)
+
+// mutex exists to ensure safe access to the map "shared"
+var mutex sync.Mutex
+
+// vars maps from integers to strings
+var vars map[int]string = map[int]string{
+	0: "",
+	1: "",
+	2: "",
+	3: "test",
+	4: "",
+	5: "",
+	6: "",
+	7: "",
+	8: "",
+	9: "",
+}
+
+// main creates a gorilla/mux router that handles three routes described in the
+// introduction
+func main() {
+	router := mux.NewRouter()
+
+	router.Path("/api/v1/vars/{id:[0-9]}").Methods("GET").HandlerFunc(handleGetVar)
+	router.Path("/api/v1/vars/{id:[0-9]}").Methods("POST").HandlerFunc(handlePostVar)
+	router.Path("/api/v1/vars/{id:[0-9]}").Methods("DELETE").HandlerFunc(handleDeleteVar)
+
+	panic(http.ListenAndServe(":8080", router))
+}
+
+// handleGetVar handles GET requests to /api/v1/vars/n by attempting
+// to get the var's string from the map. If the string is non-empty,
+// it gets the string, writes that string in the response body, and
+// produces a header containing 200 (OK). If the string is empty,
+// produces a header containing 204 (No Content).
+func handleGetVar(w http.ResponseWriter, r *http.Request) {
+	v := mux.Vars(r)
+	req := v["id"]
+
+	num, err := strconv.Atoi(req)
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+	}
+
+	
+}
+
+// handlePostVar handles POST requests...
+func handlePostVar(w http.ResponseWriter, r *http.Request) { 
+	
+}
+
+// handleDeleteVar handles DELETE requests...
+func handleDeleteVar(w http.ResponseWriter, r *http.Request) {
+	// code goes here
+}
+
+
