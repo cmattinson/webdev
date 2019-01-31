@@ -1,4 +1,4 @@
 sudo docker run postgres
 docker exec -ti postgres psql -U postgres
-goose postgres "user=postgres dbname=assign1 sslmode=disable host=localhost" up
-goose postgres "user=postgres dbname=assign1 sslmode=disable host=localhost" down
+goose postgres "user=postgres dbname=assign1 sslmode=disable" up
+goose postgres "user=postgres dbname=assign1 sslmode=disable" down
