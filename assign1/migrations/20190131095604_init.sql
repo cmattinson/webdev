@@ -5,25 +5,28 @@ CREATE TABLE student (
 );
 
 CREATE TABLE question (
-    identifier TEXT NOT NULL REFERENCES student(identifier),
+    responder_id TEXT NOT NULL REFERENCES student(identifier),
+    presenter_id TEXT NOT NULL REFERENCES student(identifier),
     type TEXT,
     number INTEGER,
     prompt TEXT,
     answer TEXT,
 
-    PRIMARY KEY (identifier, type, number)
+    PRIMARY KEY (responder_id, presenter_id, type, number)
 );
 
 CREATE TABLE presentation (
     title TEXT PRIMARY KEY,
     name TEXT,
+    date DATE,
+    time TIME,
     identifier TEXT NOT NULL REFERENCES student(identifier),
 
     UNIQUE(title, identifier)
 );
 
 -- +goose Down
-DROP TABLE student;
 DROP TABLE question;
 DROP TABLE presentation;
+DROP TABLE student;
 

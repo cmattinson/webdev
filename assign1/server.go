@@ -7,19 +7,20 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// student represents all of the data stored for a single student
+// student represents data stored for a single student
 type student struct {
 	Identifier int    `db:"identifier"`
 	Name       string `db:"name"`
 }
 
-// course represents all of the data stored for a single course
+// question represents all data for the questions for each presenter
 type question struct {
-	Identifier string `db:"identifier"`
-	Type       string `db:"type"`
-	Number     int    `db:"number"`
-	Prompt     string `db:"prompt"`
-	Answer     string `db:"answer"`
+	ResponderID string `db:"responder_id"`
+	PresenterID string `db:"presenter_id"`
+	Type        string `db:"type"`
+	Number      int    `db:"number"`
+	Prompt      string `db:"prompt"`
+	Answer      string `db:"answer"`
 }
 
 // enrollment represents the relationship between students and courses;
@@ -28,6 +29,8 @@ type question struct {
 type presentation struct {
 	Title      string `db:"title"`
 	Name       string `db:"name"`
+	Date       string `db:"date"`
+	Time       string `db:"time"`
 	Identifier string `db:"identifier"`
 }
 
