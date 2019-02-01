@@ -2,19 +2,22 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
-// student represents data stored for a single student
-type student struct {
+// Student represents data stored for a single student
+type Student struct {
 	Identifier int    `db:"identifier"`
 	Name       string `db:"name"`
 }
 
-// question represents all data for the questions for each presenter
-type question struct {
+// Question represents all data for the questions for each presenter
+type Question struct {
 	ResponderID string `db:"responder_id"`
 	PresenterID string `db:"presenter_id"`
 	Type        string `db:"type"`
@@ -23,10 +26,8 @@ type question struct {
 	Answer      string `db:"answer"`
 }
 
-// enrollment represents the relationship between students and courses;
-// when a student is enrolled in a course, both the student ID and
-// course ID appear in such a record
-type presentation struct {
+// Presentation represents the data for each presentation
+type Presentation struct {
 	Title      string `db:"title"`
 	Name       string `db:"name"`
 	Date       string `db:"date"`
@@ -34,13 +35,59 @@ type presentation struct {
 	Identifier string `db:"identifier"`
 }
 
+// Database defines own type for the sqlx DB
+type Database struct {
+	*sqlx.DB
+}
+
+var connectionString = "dbname=assign1 user=postgres port=5432 sslmode=disable"
+
 func main() {
+	db, err := OpenDatabase()
+
+	if err != nil {
+		log.Fatalf("OpenDatabase: %v", err)
+	}
+	defer db.Close()
+
 	router := mux.NewRouter()
 	router.HandleFunc("/", redirectHandler)
 	router.HandleFunc("/api/auth", authHandler)
 	router.HandleFunc("/api/presenters", presentersHandler)
 
 	panic(http.ListenAndServe(":8080", router))
+}
+
+// OpenDatabase opens the database specified by connectionString and returns a handle to it
+func OpenDatabase() (*Database, error) {
+	db := Database{}
+	var err error
+
+	db.DB, err = sqlx.Open("postgress", connectionString)
+
+	if err != nil {
+		return nil, fmt.Errorf("Open (%v): %v", connectionString, err)
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("Ping: %v", err)
+	}
+
+	return &db, nil
+}
+
+// GetPresenters gets a list of all presenters from the student database
+func (db *Database) GetPresenters() ([]Student, error) {
+	q := `SELECT *
+			FROM student`
+
+	students := []Student{}
+
+	if err := db.Select(&students, q); err != nil {
+		return nil, fmt.Errorf("Select: %v", err)
+	}
+
+	return students, nil
 }
 
 // Redirect base path to authentication path
@@ -53,5 +100,7 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func presentersHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Presenters list")
+	presenters := GetPresenters()
+
+	fmt.Fprintf(w, presenters[0])
 }
