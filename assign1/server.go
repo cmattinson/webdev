@@ -12,7 +12,7 @@ import (
 
 // Student represents data stored for a single student
 type Student struct {
-	Identifier int    `db:"identifier"`
+	Identifier string `db:"identifier"`
 	Name       string `db:"name"`
 }
 
@@ -43,19 +43,12 @@ type Database struct {
 var connectionString = "dbname=assign1 user=postgres port=5432 sslmode=disable"
 
 func main() {
-	db, err := OpenDatabase()
-
-	if err != nil {
-		log.Fatalf("OpenDatabase: %v", err)
-	}
-	defer db.Close()
-
 	router := mux.NewRouter()
 	router.HandleFunc("/", redirectHandler)
 	router.HandleFunc("/api/auth", authHandler)
 	router.HandleFunc("/api/presenters", presentersHandler)
 
-	panic(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
 // OpenDatabase opens the database specified by connectionString and returns a handle to it
@@ -63,7 +56,7 @@ func OpenDatabase() (*Database, error) {
 	db := Database{}
 	var err error
 
-	db.DB, err = sqlx.Open("postgress", connectionString)
+	db.DB, err = sqlx.Connect("postgres", "user=postgres dbname=assign1 sslmode=disable")
 
 	if err != nil {
 		return nil, fmt.Errorf("Open (%v): %v", connectionString, err)
@@ -73,21 +66,8 @@ func OpenDatabase() (*Database, error) {
 		return nil, fmt.Errorf("Ping: %v", err)
 	}
 
+	fmt.Println("Connected successfully")
 	return &db, nil
-}
-
-// GetPresenters gets a list of all presenters from the student database
-func (db *Database) GetPresenters() ([]Student, error) {
-	q := `SELECT *
-			FROM student`
-
-	students := []Student{}
-
-	if err := db.Select(&students, q); err != nil {
-		return nil, fmt.Errorf("Select: %v", err)
-	}
-
-	return students, nil
 }
 
 // Redirect base path to authentication path
@@ -100,7 +80,33 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func presentersHandler(w http.ResponseWriter, r *http.Request) {
-	presenters := GetPresenters()
+	db, err := OpenDatabase()
 
-	fmt.Fprintf(w, presenters[0])
+	if err != nil {
+		log.Fatalf("OpenDatabase: %v", err)
+	}
+	defer db.Close()
+
+	students, err := db.GetPresenters()
+
+	if err != nil {
+		log.Fatalf("GetPresenters: %v", err)
+	}
+
+	for _, s := range students {
+		fmt.Fprintf(w, "%s\n", s.Name)
+	}
+}
+
+func (db *Database) GetPresenters() ([]Student, error) {
+	q := `SELECT *
+			FROM student`
+
+	students := []Student{}
+
+	if err := db.Select(&students, q); err != nil {
+		return nil, fmt.Errorf("Select: %v", err)
+	}
+
+	return students, nil
 }
