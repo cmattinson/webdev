@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -14,11 +15,17 @@ type Student struct {
 
 // Question represents all data for the questions for each presenter
 type Question struct {
+	Type   string `db:"type"`
+	Number int    `db:"number"`
+	Prompt string `db:"prompt"`
+}
+
+// Response represents a response to a question by a certain student
+type Response struct {
 	ResponderID string `db:"responder_id"`
-	PresenterID string `db:"presenter_id"`
+	PresenterID string `db:"presenster_id"`
 	Type        string `db:"type"`
 	Number      int    `db:"number"`
-	Prompt      string `db:"prompt"`
 	Answer      string `db:"answer"`
 }
 
@@ -57,6 +64,24 @@ func OpenDatabase() (*Database, error) {
 	return &db, nil
 }
 
+// Authenticate queries the database for the student with the passed identifier
+func (db *Database) Authenticate(identifier string) (bool, error) {
+	q := `SELECT COUNT(*)
+			FROM student
+			WHERE student.identifier = $1`
+
+	var count int
+	if err := db.Get(&count, q, identifier); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("Get: %v", err)
+	}
+
+	return true, nil
+}
+
 // GetStudents obtains a slice of students from the database
 func (db *Database) GetStudents() ([]Student, error) {
 	q := `SELECT *
@@ -70,3 +95,9 @@ func (db *Database) GetStudents() ([]Student, error) {
 
 	return students, nil
 }
+
+/* PostResponse adds a new record in the Response table for the currently authenticated responder
+func (db *Database) PostResponse(responderID string, presenterID string, qType string, qNumber int) (int, error) {
+
+}
+*/

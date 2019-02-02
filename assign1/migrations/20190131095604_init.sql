@@ -5,11 +5,18 @@ CREATE TABLE student (
 );
 
 CREATE TABLE question (
-    responder_id TEXT NOT NULL REFERENCES student(identifier),
-    presenter_id TEXT NOT NULL REFERENCES student(identifier),
     type TEXT,
     number INTEGER,
     prompt TEXT,
+
+    PRIMARY KEY (type, number)
+);
+
+CREATE TABLE response (
+    responder_id TEXT NOT NULL REFERENCES student(identifier) ON DELETE CASCADE,
+    presenter_id TEXT NOT NULL REFERENCES student(identifier) ON DELETE CASCADE,
+    type TEXT,
+    number INTEGER,
     answer TEXT,
 
     PRIMARY KEY (responder_id, presenter_id, type, number)
@@ -27,6 +34,7 @@ CREATE TABLE presentation (
 
 -- +goose Down
 DROP TABLE question;
+DROP TABLE response;
 DROP TABLE presentation;
 DROP TABLE student;
 
