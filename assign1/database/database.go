@@ -1,13 +1,9 @@
-package main
+package database
 
 import (
 	"fmt"
-	"log"
-	"net/http"
 
-	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 )
 
 // Student represents data stored for a single student
@@ -42,15 +38,6 @@ type Database struct {
 
 var connectionString = "dbname=assign1 user=postgres port=5432 sslmode=disable"
 
-func main() {
-	router := mux.NewRouter()
-	router.HandleFunc("/", redirectHandler)
-	router.HandleFunc("/api/auth", authHandler)
-	router.HandleFunc("/api/presenters", presentersHandler)
-
-	log.Fatal(http.ListenAndServe(":8080", router))
-}
-
 // OpenDatabase opens the database specified by connectionString and returns a handle to it
 func OpenDatabase() (*Database, error) {
 	db := Database{}
@@ -70,35 +57,8 @@ func OpenDatabase() (*Database, error) {
 	return &db, nil
 }
 
-// Redirect base path to authentication path
-func redirectHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/api/auth", http.StatusSeeOther)
-}
-
-func authHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Authentication page")
-}
-
-func presentersHandler(w http.ResponseWriter, r *http.Request) {
-	db, err := OpenDatabase()
-
-	if err != nil {
-		log.Fatalf("OpenDatabase: %v", err)
-	}
-	defer db.Close()
-
-	students, err := db.GetPresenters()
-
-	if err != nil {
-		log.Fatalf("GetPresenters: %v", err)
-	}
-
-	for _, s := range students {
-		fmt.Fprintf(w, "%s\n", s.Name)
-	}
-}
-
-func (db *Database) GetPresenters() ([]Student, error) {
+// GetStudents obtains a slice of students from the database
+func (db *Database) GetStudents() ([]Student, error) {
 	q := `SELECT *
 			FROM student`
 

@@ -1,0 +1,4 @@
+# -*- restclient -*-
+#
+# Gets the list of presenters, shows response and headers underneath
+GET http://localhost:8080/api/presenters
