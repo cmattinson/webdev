@@ -13,16 +13,11 @@ import (
 
 func main() {
 	router := mux.NewRouter()
-	router.HandleFunc("/", redirectHandler)
-	router.HandleFunc("/api/auth", authHandler)
-	router.HandleFunc("/api/presenters", presentersHandler)
+	router.HandleFunc("/api/auth/{identifier}", authHandler)
+	router.HandleFunc("/api/presenters", presentersListHandler)
+	router.HandleFunc("/api/presenters/{identifier}", presenterHandler)
 
 	log.Fatal(http.ListenAndServe(":8080", router))
-}
-
-// Redirect base path to authentication path
-func redirectHandler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/api/auth", http.StatusSeeOther)
 }
 
 func authHandler(w http.ResponseWriter, r *http.Request) {
@@ -32,9 +27,20 @@ func authHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 	defer db.Close()
+
+	vars := mux.Vars(r)
+	identifier := vars["identifier"]
+	isStudent, err := db.Authenticate(identifier)
+
+	// Redirect authorized student to presenters list
+	if isStudent {
+		http.Redirect(w, r, "/api/presenters", http.StatusFound)
+	} else { // Student is not authorized to access API
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+	}
 }
 
-func presentersHandler(w http.ResponseWriter, r *http.Request) {
+func presentersListHandler(w http.ResponseWriter, r *http.Request) {
 	db, err := database.OpenDatabase()
 
 	if err != nil {
@@ -50,5 +56,27 @@ func presentersHandler(w http.ResponseWriter, r *http.Request) {
 
 	for _, s := range students {
 		fmt.Fprintf(w, "%s\n", s.Name)
+	}
+}
+
+func presenterHandler(w http.ResponseWriter, r *http.Request) {
+	db, err := database.OpenDatabase()
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+	defer db.Close()
+
+	vars := mux.Vars(r)
+	identifier := vars["identifier"]
+
+	info, err := db.GetPresenterInfo(identifier)
+
+	fmt.Println(info)
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
+	} else {
+		fmt.Fprintf(w, "%+v\n", info)
 	}
 }

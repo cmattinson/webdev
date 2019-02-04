@@ -79,7 +79,13 @@ func (db *Database) Authenticate(identifier string) (bool, error) {
 		return false, fmt.Errorf("Get: %v", err)
 	}
 
-	return true, nil
+	// Return false if user doesn't exist, true otherwise
+	if count == 0 {
+		return false, nil
+	} else {
+		return true, nil
+	}
+
 }
 
 // GetStudents obtains a slice of students from the database
@@ -96,8 +102,17 @@ func (db *Database) GetStudents() ([]Student, error) {
 	return students, nil
 }
 
-/* PostResponse adds a new record in the Response table for the currently authenticated responder
-func (db *Database) PostResponse(responderID string, presenterID string, qType string, qNumber int) (int, error) {
+// GetPresenterInfo obtains all of the information about the selected presenter and their presentation
+func (db *Database) GetPresenterInfo(identifier string) (*Presentation, error) {
+	q := `SELECT *
+			FROM presentation
+			WHERE presentation.identifier = $1`
 
+	presentation := Presentation{}
+
+	if err := db.Get(&presentation, q); err != nil {
+		return nil, fmt.Errorf("Select: %v", err)
+	}
+
+	return &presentation, nil
 }
-*/

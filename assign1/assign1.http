@@ -1,4 +1,13 @@
 # -*- restclient -*-
 #
+# Tests authentication to the API with a user who is not authenticated
+GET http://localhost:8080/api/auth/notauth
+#
+# Tests authentication with an authorized user, will redirect to presenters list
+GET http://localhost:8080/api/auth/cmTYdFRm
+#
 # Gets the list of presenters, shows response and headers underneath
 GET http://localhost:8080/api/presenters
+#
+# Gets presentation info for a presenter
+GET http://localhost:8080/api/presenters/cmTYdFRm
