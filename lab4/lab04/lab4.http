@@ -1,0 +1,9 @@
+-*- restclient -*-
+
+# Get 10 assessments from the database
+GET http://localhost:8080/api/v1/assessments
+
+# Get assessments from a certain account
+GET http://localhost:8080/api/v1/assessments/10838686
+
+
