@@ -103,16 +103,16 @@ func (db *Database) GetStudents() ([]Student, error) {
 }
 
 // GetPresenterInfo obtains all of the information about the selected presenter and their presentation
-func (db *Database) GetPresenterInfo(identifier string) (*Presentation, error) {
+func (db *Database) GetPresenterInfo(identifier string) (Presentation, error) {
 	q := `SELECT *
 			FROM presentation
 			WHERE presentation.identifier = $1`
 
 	presentation := Presentation{}
 
-	if err := db.Get(&presentation, q); err != nil {
-		return nil, fmt.Errorf("Select: %v", err)
-	}
+	err := db.Get(&presentation, q)
 
-	return &presentation, nil
+	fmt.Printf("%#v\n", presentation)
+
+	return presentation, err
 }

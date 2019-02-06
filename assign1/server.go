@@ -67,16 +67,8 @@ func presenterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	vars := mux.Vars(r)
-	identifier := vars["identifier"]
+	// vars := mux.Vars(r)
+	// identifier := vars["identifier"]
 
-	info, err := db.GetPresenterInfo(identifier)
-
-	fmt.Println(info)
-
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusNoContent), http.StatusNoContent)
-	} else {
-		fmt.Fprintf(w, "%+v\n", info)
-	}
+	db.GetPresenterInfo("cmTYdFRm")
 }

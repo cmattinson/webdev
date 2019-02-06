@@ -1,7 +1,9 @@
 -- +goose Up
 CREATE TABLE student (
     identifier TEXT PRIMARY KEY,
-    name TEXT
+    name TEXT,
+
+    UNIQUE(identifier)
 );
 
 CREATE TABLE question (
@@ -27,7 +29,7 @@ CREATE TABLE presentation (
     name TEXT,
     date DATE,
     time TIME,
-    identifier TEXT NOT NULL REFERENCES student(identifier),
+    identifier TEXT NOT NULL REFERENCES student(identifier) ON DELETE CASCADE,
 
     UNIQUE(title, identifier)
 );
@@ -37,4 +39,5 @@ DROP TABLE question;
 DROP TABLE response;
 DROP TABLE presentation;
 DROP TABLE student;
+
 
