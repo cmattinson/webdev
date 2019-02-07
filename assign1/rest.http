@@ -1,13 +1,22 @@
 # -*- restclient -*-
 #
 # Posts an identifier to the API
-POST http://localhost:8080/api/auth
+POST http://localhost:8080/api/v1
 Content-Type: application/json
+
 {
-	"identifier": "jqYPeRSj"
+	"id": "jqYPeRSj"
+}
+#
+# Post an unauthorized user to the API
+POST http://localhost:8080/api/v1
+Content-Type: application/json
+
+{
+	"id": "notAuthorized"
 }
 # Gets the list of presenters, shows response and headers underneath
-GET http://localhost:8080/api/presenters
+GET http://localhost:8080/api/v1/presenters
 #
 # Gets presentation info for a presenter
-GET http://localhost:8080/api/presenters/cmTYdFRm
+GET http://localhost:8080/api/v1/presenters/cmTYdFRm

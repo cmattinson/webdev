@@ -76,9 +76,6 @@ func (h *Handler) handleGetAccountAssessments(w http.ResponseWriter, r *http.Req
 	account := vars["n"]
 
 	accountNumber, err := strconv.Atoi(account)
-
-	fmt.Println(accountNumber)
-
 	assessment, err := h.GetAssessment(accountNumber)
 
 	if err != nil {

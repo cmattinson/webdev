@@ -17,7 +17,16 @@ type Handler struct {
 
 // Responder stores the currently logged in to the API
 type Responder struct {
-	identifier string
+	Identifier string `json:"id"`
+}
+
+var identifier string
+var authorized bool
+
+// Upon running the application, there is no responder
+func init() {
+	identifier = ""
+	authorized = false
 }
 
 func main() {
@@ -32,18 +41,54 @@ func main() {
 	}
 
 	router := mux.NewRouter()
-	// router.HandleFunc("/api/auth", handlers.authHandler)
-	router.HandleFunc("/api/presenters", authHandler(handlers.presentersListHandler))
-	router.HandleFunc("/api/presenters/{identifier}", handlers.presenterHandler)
+	router.HandleFunc("/api/v1", handlers.authHandler(handlers.authorize))
+	router.HandleFunc("/api/v1/presenters", checkForAuthentication(handlers.presentersListHandler))
+	router.HandleFunc("/api/v1/presenters/{identifier}", checkForAuthentication(handlers.presenterHandler))
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
-func authHandler(next http.Handler) http.Handler {
+// authHandler is middleware to check that the responder is authorized to the API
+func (h *Handler) authHandler(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Before middleware")
+		responder := Responder{}
+		err := json.NewDecoder(r.Body).Decode(&responder)
+
+		if err != nil {
+			panic(err)
+		}
+
+		isStudent, err := h.Authenticate(responder.Identifier)
+
+		if !isStudent {
+			fmt.Println(responder.Identifier + " is not a student")
+			authorized = false
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+
+		fmt.Println(responder.Identifier + " is a student")
+		identifier = responder.Identifier
+		authorized = true
+
 		next.ServeHTTP(w, r)
-		fmt.Println("After middleware")
+	})
+}
+
+// Upon successful authentication, redirect the student to the presenters list
+func (h *Handler) authorize(w http.ResponseWriter, r *http.Request) {
+	http.Redirect(w, r, "/api/v1/presenters", http.StatusSeeOther)
+}
+
+// This function will check if there is a currently stored user that is authenticated
+func checkForAuthentication(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if identifier == "" || !authorized {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -71,20 +116,6 @@ func (h *Handler) presenterHandler(w http.ResponseWriter, r *http.Request) {
 
 	// https://play.golang.org/p/6jHI-MRx0z
 	json, err := json.MarshalIndent(info, "", "    ")
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Fprintf(w, "%s\n", json)
-
-	questions, err := h.GetQuestions()
-
-	if err != nil {
-		panic(err)
-	}
-
-	json, err = json.MarshalIndent(questions, "", "    ")
 
 	if err != nil {
 		panic(err)
