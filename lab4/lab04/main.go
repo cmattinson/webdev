@@ -87,3 +87,9 @@ func (h *Handler) handleGetAccountAssessments(w http.ResponseWriter, r *http.Req
 		fmt.Fprintf(w, "%v\n", assessment)
 	}
 }
+
+func middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	})
+}

@@ -27,8 +27,8 @@ CREATE TABLE response (
 CREATE TABLE presentation (
     title TEXT PRIMARY KEY,
     name TEXT,
-    date DATE,
-    time TIME,
+    date TEXT,
+    time TEXT,
     identifier TEXT NOT NULL REFERENCES student(identifier) ON DELETE CASCADE,
 
     UNIQUE(title, identifier)
