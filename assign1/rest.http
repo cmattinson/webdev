@@ -1,0 +1,13 @@
+# -*- restclient -*-
+#
+# Posts an identifier to the API
+POST http://localhost:8080/api/auth
+Content-Type: application/json
+{
+	"identifier": "jqYPeRSj"
+}
+# Gets the list of presenters, shows response and headers underneath
+GET http://localhost:8080/api/presenters
+#
+# Gets presentation info for a presenter
+GET http://localhost:8080/api/presenters/cmTYdFRm
