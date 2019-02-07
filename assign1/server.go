@@ -20,6 +20,13 @@ type Responder struct {
 	Identifier string `json:"id"`
 }
 
+// ResponseRequest stores an incoming question response request
+type ResponseRequest struct {
+	Type   string `json:"type"`
+	Number int    `json:"number"`
+	Answer string `json:"answer"`
+}
+
 var identifier string
 var authorized bool
 
@@ -41,15 +48,16 @@ func main() {
 	}
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1", handlers.authHandler(handlers.authorize))
+	router.HandleFunc("/api/v1", handlers.authenticationMiddleware(handlers.authorize))
 	router.HandleFunc("/api/v1/presenters", checkForAuthentication(handlers.presentersListHandler))
-	router.HandleFunc("/api/v1/presenters/{identifier}", checkForAuthentication(handlers.presenterHandler))
+	router.HandleFunc("/api/v1/presenters/{identifier}", checkForAuthentication(handlers.presenterHandler)).Methods("GET")
+	router.HandleFunc("/api/v1/presenters/{identifier}", checkForAuthentication(handlers.responseHandler)).Methods("POST")
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
-// authHandler is middleware to check that the responder is authorized to the API
-func (h *Handler) authHandler(next http.HandlerFunc) http.HandlerFunc {
+// authenticationMiddleware is middleware to check that the responder is authorized to the API
+func (h *Handler) authenticationMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		responder := Responder{}
 		err := json.NewDecoder(r.Body).Decode(&responder)
@@ -106,20 +114,48 @@ func (h *Handler) presentersListHandler(w http.ResponseWriter, r *http.Request) 
 
 func (h *Handler) presenterHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	identifier := vars["identifier"]
+	presenterID := vars["identifier"]
 
-	info, err := h.GetPresentation(identifier)
+	info, err := h.GetPresentation(presenterID)
 
 	if err != nil {
 		panic(err)
 	}
 
 	// https://play.golang.org/p/6jHI-MRx0z
-	json, err := json.MarshalIndent(info, "", "    ")
+	infoJSON, err := json.MarshalIndent(info, "", "    ")
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Fprintf(w, "%s\n", json)
+	fmt.Fprintf(w, "%s\n", infoJSON)
+
+	questions, err := h.GetQuestions()
+
+	if err != nil {
+		panic(err)
+	}
+
+	questionJSON, err := json.MarshalIndent(questions, "", "    ")
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Fprintf(w, "%s\n", questionJSON)
+}
+
+func (h *Handler) responseHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	presenterID := vars["identifier"]
+
+	response := ResponseRequest{}
+	err := json.NewDecoder(r.Body).Decode(&response)
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+	}
+
+	h.RespondToQuestion(identifier, presenterID, response.Type, response.Number, response.Answer)
 }

@@ -23,7 +23,7 @@ type Question struct {
 // Response represents a response to a question by a certain student
 type Response struct {
 	ResponderID string `db:"responder_id"`
-	PresenterID string `db:"presenster_id"`
+	PresenterID string `db:"presenter_id"`
 	Type        string `db:"type"`
 	Number      int    `db:"number"`
 	Answer      string `db:"answer"`
@@ -41,6 +41,14 @@ type Presentation struct {
 // Database defines own type for the sqlx DB
 type Database struct {
 	*sqlx.DB
+}
+
+// ResponseDisplay used for displaying a response to a question
+type ResponseDisplay struct {
+	Type   string
+	Number int
+	Prompt string
+	Answer string
 }
 
 var connectionString = "dbname=assign1 user=postgres port=5432 sslmode=disable"
@@ -89,8 +97,7 @@ func (db *Database) Authenticate(identifier string) (bool, error) {
 
 // GetStudents obtains a slice of students from the database
 func (db *Database) GetStudents() ([]Student, error) {
-	q := `SELECT *
-			FROM student`
+	q := `SELECT * FROM student`
 
 	students := []Student{}
 
@@ -116,10 +123,9 @@ func (db *Database) GetPresentation(identifier string) (Presentation, error) {
 	return presentation, nil
 }
 
-// GetQuestions gets a slice of questions in the database for the survey form
-func (db *Database) GetQuestions(responderID string, presenterID string) ([]Question, error) {
-	q := `SELECT *
-			FROM question`
+// GetQuestions gets a slice of all questions in the database
+func (db *Database) GetQuestions() ([]Question, error) {
+	q := `SELECT * FROM question`
 
 	questions := []Question{}
 
@@ -128,4 +134,81 @@ func (db *Database) GetQuestions(responderID string, presenterID string) ([]Ques
 	}
 
 	return questions, nil
+}
+
+// GetResponses gets a slice of responses from the current responder to the desired presenter
+func (db *Database) GetResponses(responderID string, presenterID string) ([]ResponseDisplay, error) {
+	q := `SELECT response.type, response.number, question.prompt, response.answer
+			FROM response, question
+			WHERE response.type = question.type
+			AND response.number = question.number
+			AND responder_id = $1
+			AND presenter_id = $2`
+
+	responses := []ResponseDisplay{}
+
+	if err := db.Select(&responses, q, responderID, presenterID); err != nil {
+		return nil, fmt.Errorf("Select: %v", err)
+	}
+
+	return responses, nil
+}
+
+// ResponseExists will check if the response being POSTed already exists
+func (db *Database) ResponseExists(responderID string, presenterID, questionType string, number int) (bool, error) {
+	q := `SELECT COUNT(*)
+			FROM response
+			WHERE response.responder_id = $1
+			AND response.presenter_id = $2
+			AND response.type = $3
+			AND response.number = $4`
+
+	var count int
+	if err := db.Get(&count, q, responderID, presenterID, questionType, number); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("Get: %v", err)
+	}
+
+	// Return false if response doesn't exist
+	if count == 0 {
+		return false, nil
+	}
+
+	return true, nil
+
+}
+
+// RespondToQuestion sends an insert or update query to the database
+func (db *Database) RespondToQuestion(responderID string, presenterID string, questionType string, number int, answer string) error {
+	// Check if question response already exists
+	if exists, err := db.ResponseExists(responderID, presenterID, questionType, number); err != nil {
+		fmt.Errorf("Insert: %v", err)
+	} else if exists { // Response exists, update instead of insert
+		q := `UPDATE response 
+			SET answer = $1
+			WHERE responder_id = $2
+			AND presenter_id = $3
+			AND type = $4
+			AND number = $5`
+
+		if err := db.MustExec(q, answer, responderID, presenterID, questionType, number); err != nil {
+			fmt.Errorf("Update: %v", err)
+		}
+
+		return nil
+	} else {
+		q := `INSERT INTO response (responder_id, presenter_id, type, number, answer)
+		VALUES ($1, $2, $3, $4, $5)`
+
+		if err := db.MustExec(q, responderID, presenterID, questionType, number, answer); err != nil {
+			fmt.Errorf("Insert: %v", err)
+		}
+
+		return nil
+	}
+
+	return nil
 }
