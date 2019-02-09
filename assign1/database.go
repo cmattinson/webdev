@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -68,7 +69,7 @@ func OpenDatabase() (*Database, error) {
 		return nil, fmt.Errorf("Ping: %v", err)
 	}
 
-	fmt.Println("Connected successfully")
+	log.Println("Connected to database successfully")
 	return &db, nil
 }
 
@@ -136,24 +137,6 @@ func (db *Database) GetQuestions() ([]Question, error) {
 	return questions, nil
 }
 
-// GetResponses gets a slice of responses from the current responder to the desired presenter
-func (db *Database) GetResponses(responderID string, presenterID string) ([]ResponseDisplay, error) {
-	q := `SELECT response.type, response.number, question.prompt, response.answer
-			FROM response, question
-			WHERE response.type = question.type
-			AND response.number = question.number
-			AND responder_id = $1
-			AND presenter_id = $2`
-
-	responses := []ResponseDisplay{}
-
-	if err := db.Select(&responses, q, responderID, presenterID); err != nil {
-		return nil, fmt.Errorf("Select: %v", err)
-	}
-
-	return responses, nil
-}
-
 // ResponseExists will check if the response being POSTed already exists
 func (db *Database) ResponseExists(responderID string, presenterID, questionType string, number int) (bool, error) {
 	q := `SELECT COUNT(*)
@@ -184,9 +167,14 @@ func (db *Database) ResponseExists(responderID string, presenterID, questionType
 // RespondToQuestion sends an insert or update query to the database
 func (db *Database) RespondToQuestion(responderID string, presenterID string, questionType string, number int, answer string) error {
 	// Check if question response already exists
-	if exists, err := db.ResponseExists(responderID, presenterID, questionType, number); err != nil {
-		fmt.Errorf("Insert: %v", err)
-	} else if exists { // Response exists, update instead of insert
+	exists, err := db.ResponseExists(responderID, presenterID, questionType, number)
+
+	if err != nil {
+		fmt.Errorf("ResponseExists: %v", err)
+	}
+
+	// Response exists, update instead of insert
+	if exists == true {
 		q := `UPDATE response 
 			SET answer = $1
 			WHERE responder_id = $2
@@ -199,7 +187,7 @@ func (db *Database) RespondToQuestion(responderID string, presenterID string, qu
 		}
 
 		return nil
-	} else {
+	} else if !exists {
 		q := `INSERT INTO response (responder_id, presenter_id, type, number, answer)
 		VALUES ($1, $2, $3, $4, $5)`
 
@@ -211,4 +199,22 @@ func (db *Database) RespondToQuestion(responderID string, presenterID string, qu
 	}
 
 	return nil
+}
+
+// GetResponses gets a slice of responses from the current responder to the desired presenter
+func (db *Database) GetResponses(responderID string, presenterID string) ([]ResponseDisplay, error) {
+	q := `SELECT response.type, response.number, question.prompt, response.answer
+			FROM response, question
+			WHERE response.type = question.type
+			AND response.number = question.number
+			AND responder_id = $1
+			AND presenter_id = $2`
+
+	responses := []ResponseDisplay{}
+
+	if err := db.Select(&responses, q, responderID, presenterID); err != nil {
+		return nil, fmt.Errorf("Select: %v", err)
+	}
+
+	return responses, nil
 }

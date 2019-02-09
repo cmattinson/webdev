@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -15,7 +17,7 @@ type Handler struct {
 	*Database
 }
 
-// Responder stores the currently logged in to the API
+// Responder stores an authentication request
 type Responder struct {
 	Identifier string `json:"id"`
 }
@@ -27,14 +29,10 @@ type ResponseRequest struct {
 	Answer string `json:"answer"`
 }
 
-var identifier string
-var authorized bool
+// https://www.joeshaw.org/revisiting-context-and-http-handler-for-go-17/
+type key string
 
-// Upon running the application, there is no responder
-func init() {
-	identifier = ""
-	authorized = false
-}
+const apiID key = ""
 
 func main() {
 	db, err := OpenDatabase()
@@ -48,38 +46,61 @@ func main() {
 	}
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1", handlers.authenticationMiddleware(handlers.authorize))
-	router.HandleFunc("/api/v1/presenters", checkForAuthentication(handlers.presentersListHandler))
-	router.HandleFunc("/api/v1/presenters/{identifier}", checkForAuthentication(handlers.presenterHandler)).Methods("GET")
-	router.HandleFunc("/api/v1/presenters/{identifier}", checkForAuthentication(handlers.responseHandler)).Methods("POST")
+	router.HandleFunc("/api/v1", handlers.authentication(handlers.authorize)).
+		Methods("POST")
+	router.HandleFunc("/api/v1/presenters", handlers.authentication(handlers.presentersListHandler)).
+		Methods("GET")
+	router.HandleFunc("/api/v1/presenters/{identifier}", handlers.authentication(handlers.presenterHandler)).
+		Methods("GET")
+	router.HandleFunc("/api/v1/presenters/{identifier}", handlers.authentication(handlers.sendResponseHandler)).
+		Methods("POST")
+	router.HandleFunc("/api/v1/responses/{identifier}", handlers.authentication(handlers.getResponsesHandler)).
+		Methods("GET")
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
-// authenticationMiddleware is middleware to check that the responder is authorized to the API
-func (h *Handler) authenticationMiddleware(next http.HandlerFunc) http.HandlerFunc {
+// contextWithIdentifier prepares a new context with the identifier
+// https://www.joeshaw.org/revisiting-context-and-http-handler-for-go-17/
+func contextWithIdentifier(c context.Context, r *http.Request) context.Context {
+	header := r.Header.Get("Authorization")
+	split := strings.Split(header, "Bearer")
+	identifier := split[1]
+	identifier = strings.TrimLeft(identifier, " ")
+
+	return context.WithValue(c, apiID, identifier)
+}
+
+// getIdentifierFromContext returns the identifier string from the context
+// https://www.joeshaw.org/revisiting-context-and-http-handler-for-go-17/
+func getIdentifierFromContext(c context.Context) string {
+	return c.Value(apiID).(string)
+}
+
+// authentication is middleware to check that the responder is authorized to the API
+//
+// It prepares a new context with the identifier using the functions above and passes
+// it to the next handler
+func (h *Handler) authentication(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		responder := Responder{}
-		err := json.NewDecoder(r.Body).Decode(&responder)
+		// https://www.joeshaw.org/revisiting-context-and-http-handler-for-go-17/
+		c := contextWithIdentifier(r.Context(), r)
+		identifier := getIdentifierFromContext(c)
+
+		isStudent, err := h.Authenticate(identifier)
 
 		if err != nil {
-			panic(err)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		}
 
-		isStudent, err := h.Authenticate(responder.Identifier)
-
 		if !isStudent {
-			fmt.Println(responder.Identifier + " is not a student")
-			authorized = false
+			log.Println(identifier + " is not an authorized student")
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
 
-		fmt.Println(responder.Identifier + " is a student")
-		identifier = responder.Identifier
-		authorized = true
-
-		next.ServeHTTP(w, r)
+		log.Println(identifier + " is an authorized student")
+		next.ServeHTTP(w, r.WithContext(c))
 	})
 }
 
@@ -88,18 +109,7 @@ func (h *Handler) authorize(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/api/v1/presenters", http.StatusSeeOther)
 }
 
-// This function will check if there is a currently stored user that is authenticated
-func checkForAuthentication(next http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if identifier == "" || !authorized {
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
+// Handle getting the list of presenters
 func (h *Handler) presentersListHandler(w http.ResponseWriter, r *http.Request) {
 	students, err := h.GetStudents()
 
@@ -112,24 +122,25 @@ func (h *Handler) presentersListHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// Handle getting info for a specific presenter
 func (h *Handler) presenterHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	presenterID := vars["identifier"]
 
-	info, err := h.GetPresentation(presenterID)
+	presentation, err := h.GetPresentation(presenterID)
 
 	if err != nil {
 		panic(err)
 	}
 
 	// https://play.golang.org/p/6jHI-MRx0z
-	infoJSON, err := json.MarshalIndent(info, "", "    ")
+	presentationJSON, err := json.MarshalIndent(presentation, "", "    ")
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Fprintf(w, "%s\n", infoJSON)
+	fmt.Fprintf(w, "%s\n", presentationJSON)
 
 	questions, err := h.GetQuestions()
 
@@ -146,10 +157,14 @@ func (h *Handler) presenterHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s\n", questionJSON)
 }
 
-func (h *Handler) responseHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) sendResponseHandler(w http.ResponseWriter, r *http.Request) {
+	// Get the authenticated user's identifier from the request context
+	responderID := getIdentifierFromContext(r.Context())
+
 	vars := mux.Vars(r)
 	presenterID := vars["identifier"]
 
+	// Decode the request into a ResponseRequest struct
 	response := ResponseRequest{}
 	err := json.NewDecoder(r.Body).Decode(&response)
 
@@ -157,5 +172,29 @@ func (h *Handler) responseHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 	}
 
-	h.RespondToQuestion(identifier, presenterID, response.Type, response.Number, response.Answer)
+	h.RespondToQuestion(responderID, presenterID, response.Type, response.Number, response.Answer)
+
+}
+
+func (h *Handler) getResponsesHandler(w http.ResponseWriter, r *http.Request) {
+	responderID := getIdentifierFromContext(r.Context())
+
+	vars := mux.Vars(r)
+	presenterID := vars["identifier"]
+
+	responses, err := h.GetResponses(responderID, presenterID)
+
+	if err != nil {
+		panic(err)
+	}
+
+	// https://play.golang.org/p/6jHI-MRx0z
+	responsesJSON, err := json.MarshalIndent(responses, "", "    ")
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Fprintf(w, "%s\n", responsesJSON)
+
 }
