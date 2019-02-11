@@ -64,7 +64,18 @@ func main() {
 // https://www.joeshaw.org/revisiting-context-and-http-handler-for-go-17/
 func contextWithIdentifier(c context.Context, r *http.Request) context.Context {
 	header := r.Header.Get("Authorization")
+
+	// No authorization header passed
+	if header == "" {
+		return nil
+	}
+
 	split := strings.Split(header, "Bearer")
+
+	// Bearer token not passed
+	if len(split) == 1 {
+		return nil
+	}
 	identifier := split[1]
 	identifier = strings.TrimLeft(identifier, " ")
 
@@ -85,6 +96,14 @@ func (h *Handler) authentication(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// https://www.joeshaw.org/revisiting-context-and-http-handler-for-go-17/
 		c := contextWithIdentifier(r.Context(), r)
+
+		// Authorization header was not included with the request
+		if c == nil {
+			w.Header().Set("WWW-Authenticate", "Bearer: identifier")
+			w.WriteHeader(401)
+			return
+		}
+
 		identifier := getIdentifierFromContext(c)
 
 		isStudent, err := h.Authenticate(identifier)
@@ -94,32 +113,35 @@ func (h *Handler) authentication(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		if !isStudent {
-			log.Println(identifier + " is not an authorized student")
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
 
-		log.Println(identifier + " is an authorized student")
 		next.ServeHTTP(w, r.WithContext(c))
 	})
 }
 
 // Upon successful authentication, redirect the student to the presenters list
 func (h *Handler) authorize(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/api/v1/presenters", http.StatusSeeOther)
+	log.Println("Student authorized")
+	http.Error(w, http.StatusText(http.StatusFound), http.StatusFound)
 }
 
 // Handle getting the list of presenters
 func (h *Handler) presentersListHandler(w http.ResponseWriter, r *http.Request) {
-	students, err := h.GetStudents()
+	students, err := h.GetPresenters()
 
 	if err != nil {
 		log.Fatalf("GetPresenters: %v", err)
 	}
 
-	for _, s := range students {
-		fmt.Fprintf(w, "%s\n", s.Name)
+	studentJSON, err := json.MarshalIndent(students, "", "    ")
+
+	if err != nil {
+		panic(err)
 	}
+
+	fmt.Fprintf(w, "%s\n", studentJSON)
 }
 
 // Handle getting info for a specific presenter
@@ -172,8 +194,15 @@ func (h *Handler) sendResponseHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 	}
 
-	h.RespondToQuestion(responderID, presenterID, response.Type, response.Number, response.Answer)
+	responseSent, err := h.RespondToQuestion(responderID, presenterID, response.Type, response.Number, response.Answer)
 
+	if err != nil {
+		log.Printf("%v\n", err)
+	}
+
+	if !responseSent {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+	}
 }
 
 func (h *Handler) getResponsesHandler(w http.ResponseWriter, r *http.Request) {

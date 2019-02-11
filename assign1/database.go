@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -11,7 +12,8 @@ import (
 // Student represents data stored for a single student
 type Student struct {
 	Identifier string `db:"identifier"`
-	Name       string `db:"name"`
+	FirstName  string `db:"first_name"`
+	LastName   string `db:"last_name"`
 }
 
 // Question represents all data for the questions for each presenter
@@ -33,7 +35,8 @@ type Response struct {
 // Presentation represents the data for each presentation
 type Presentation struct {
 	Title      string `db:"title"`
-	Name       string `db:"name"`
+	FirstName  string `db:"first_name"`
+	LastName   string `db:"last_name"`
 	Date       string `db:"date"`
 	Time       string `db:"time"`
 	Identifier string `db:"identifier"`
@@ -96,8 +99,8 @@ func (db *Database) Authenticate(identifier string) (bool, error) {
 	return true, nil
 }
 
-// GetStudents obtains a slice of students from the database
-func (db *Database) GetStudents() ([]Student, error) {
+// GetPresenters obtains a slice of students from the database
+func (db *Database) GetPresenters() ([]Student, error) {
 	q := `SELECT * FROM student`
 
 	students := []Student{}
@@ -111,7 +114,7 @@ func (db *Database) GetStudents() ([]Student, error) {
 
 // GetPresentation obtains all of the information about the selected presenter and their presentation
 func (db *Database) GetPresentation(identifier string) (Presentation, error) {
-	q := `SELECT title, name, date, time
+	q := `SELECT title, first_name, last_name, date, time
 			FROM presentation
 			WHERE identifier = $1`
 
@@ -135,6 +138,30 @@ func (db *Database) GetQuestions() ([]Question, error) {
 	}
 
 	return questions, nil
+}
+
+// QuestionExists checks if the desired question exists in the database
+func (db *Database) QuestionExists(questionType string, number int) (bool, error) {
+	q := `SELECT COUNT(*)
+	FROM question
+	WHERE type = $1
+	AND number = $2`
+
+	var count int
+	if err := db.Get(&count, q, questionType, number); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("Get: %v", err)
+	}
+
+	// Return false if question doesn't exist
+	if count == 0 {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // ResponseExists will check if the response being POSTed already exists
@@ -165,40 +192,59 @@ func (db *Database) ResponseExists(responderID string, presenterID, questionType
 }
 
 // RespondToQuestion sends an insert or update query to the database
-func (db *Database) RespondToQuestion(responderID string, presenterID string, questionType string, number int, answer string) error {
-	// Check if question response already exists
-	exists, err := db.ResponseExists(responderID, presenterID, questionType, number)
+func (db *Database) RespondToQuestion(responderID string, presenterID string, questionType string, number int, answer string) (bool, error) {
+	questionExists, err := db.QuestionExists(questionType, number)
 
 	if err != nil {
-		fmt.Errorf("ResponseExists: %v", err)
+		return false, fmt.Errorf("QuestionExists: %v", err)
 	}
 
-	// Response exists, update instead of insert
-	if exists == true {
-		q := `UPDATE response 
-			SET answer = $1
-			WHERE responder_id = $2
-			AND presenter_id = $3
-			AND type = $4
-			AND number = $5`
+	if !questionExists {
+		return false, fmt.Errorf("Question does not exist in the database")
+	}
 
-		if err := db.MustExec(q, answer, responderID, presenterID, questionType, number); err != nil {
-			fmt.Errorf("Update: %v", err)
+	// Check if response already exists
+	respExists, err := db.ResponseExists(responderID, presenterID, questionType, number)
+
+	if err != nil {
+		return false, fmt.Errorf("ResponseExists: %v", err)
+	}
+
+	if respExists {
+		q := `UPDATE response SET
+		answer = $1
+		WHERE
+		responder_id = $2
+		AND
+		presenter_id = $3
+		AND
+		type = $4
+		AND
+		number = $5`
+
+		_, err := db.Exec(q, answer, responderID, presenterID, questionType, number)
+
+		if err != nil {
+			log.Println("Error updating response")
+			return false, err
 		}
 
-		return nil
-	} else if !exists {
+		log.Printf("Updated response to %s %s\n", questionType, strconv.Itoa(number))
+		return true, nil
+	} else {
 		q := `INSERT INTO response (responder_id, presenter_id, type, number, answer)
-		VALUES ($1, $2, $3, $4, $5)`
+				VALUES ($1, $2, $3, $4, $5)`
 
-		if err := db.MustExec(q, responderID, presenterID, questionType, number, answer); err != nil {
-			fmt.Errorf("Insert: %v", err)
+		_, err := db.Exec(q, responderID, presenterID, questionType, number, answer)
+
+		if err != nil {
+			log.Println("Error inserting response")
+			return false, err
 		}
 
-		return nil
+		log.Printf("Inserted response to %s %s\n", questionType, strconv.Itoa(number))
+		return true, nil
 	}
-
-	return nil
 }
 
 // GetResponses gets a slice of responses from the current responder to the desired presenter

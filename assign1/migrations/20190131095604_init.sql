@@ -1,7 +1,8 @@
 -- +goose Up
 CREATE TABLE student (
     identifier TEXT PRIMARY KEY,
-    name TEXT,
+    first_name TEXT,
+    last_name TEXT,
 
     UNIQUE(identifier)
 );
@@ -26,7 +27,8 @@ CREATE TABLE response (
 
 CREATE TABLE presentation (
     title TEXT PRIMARY KEY,
-    name TEXT,
+    first_name TEXT,
+    last_name TEXT,
     date TEXT,
     time TEXT,
     identifier TEXT NOT NULL REFERENCES student(identifier) ON DELETE CASCADE,

@@ -1,6 +1,6 @@
 -- +goose Up
-insert into student (identifier, name) values ('jqYPeRSj', 'Chris');
-insert into student (identifier, name) values ('cmTYdFRm', 'Nick');
+insert into student (identifier, first_name, last_name) values ('jqYPeRSj', 'Chris', 'Mattinson');
+insert into student (identifier, first_name, last_name) values ('cmTYdFRm', 'Nick', 'Boers');
 
 insert into question (type, number, prompt) 
 values ('M/C', 1, 'Preparedness: the presenter was adequately prepared.');
@@ -38,8 +38,11 @@ values ('Open', 1, 'Provide any comments for the presenter.');
 insert into question (type, number, prompt) 
 values ('Open', 2, 'Provide any comments for your instructor.');
 
-insert into presentation (title, name, date, time, identifier) 
-values ('An Introduction to Go Programming', 'Nick', '2019-01-31', '09:30', 'cmTYdFRm');
+insert into presentation (title, first_name, last_name, date, time, identifier) 
+values ('An Introduction to Go Programming', 'Nick', 'Boers', '2019-01-31', '09:30', 'cmTYdFRm');
+
+insert into presentation (title, first_name, last_name, date, time, identifier)
+values ('Restful API Design', 'Chris', 'Mattinson', '2019-02-08', '11:30', 'jqYPeRSj');
 
 -- +goose Down
 DELETE FROM student;
