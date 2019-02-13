@@ -25,21 +25,29 @@ type Question struct {
 
 // Response represents a response to a question by a certain student
 type Response struct {
-	ResponderID string `db:"responder_id"`
-	PresenterID string `db:"presenter_id"`
-	Type        string `db:"type"`
-	Number      int    `db:"number"`
-	Answer      string `db:"answer"`
+	ResponderID    string `db:"responder_id"`
+	PresentationID string `db:"presentation_id"`
+	Type           string `db:"type"`
+	Number         int    `db:"number"`
+	Answer         string `db:"answer"`
 }
 
 // Presentation represents the data for each presentation
 type Presentation struct {
-	Title      string `db:"title"`
-	FirstName  string `db:"first_name"`
-	LastName   string `db:"last_name"`
-	Date       string `db:"date"`
-	Time       string `db:"time"`
-	Identifier string `db:"identifier"`
+	PresentationID int    `db:"presentation_id"`
+	Title          string `db:"title"`
+	Date           string `db:"date"`
+	Time           string `db:"time"`
+	Identifier     string `db:"identifier"`
+}
+
+// PresentationInfo will serve as a representation to the user
+type PresentationInfo struct {
+	Title     string `db:"title"`
+	FirstName string `db:"first_name"`
+	LastName  string `db:"last_name"`
+	Date      string `db:"date"`
+	Time      string `db:"time"`
 }
 
 // Database defines own type for the sqlx DB
@@ -113,15 +121,16 @@ func (db *Database) GetPresenters() ([]Student, error) {
 }
 
 // GetPresentation obtains all of the information about the selected presenter and their presentation
-func (db *Database) GetPresentation(identifier string) (Presentation, error) {
-	q := `SELECT title, first_name, last_name, date, time
-			FROM presentation
-			WHERE identifier = $1`
+func (db *Database) GetPresentation(id int) (PresentationInfo, error) {
+	q := `SELECT presentation.title, student.first_name, student.last_name, presentation.date, presentation.time
+			FROM presentation, student
+			WHERE presentation_id = $1
+			AND student.identifier = presentation.identifier`
 
-	presentation := Presentation{}
+	presentation := PresentationInfo{}
 
-	if err := db.Get(&presentation, q, identifier); err != nil {
-		return Presentation{}, err
+	if err := db.Get(&presentation, q, id); err != nil {
+		return PresentationInfo{}, err
 	}
 
 	return presentation, nil
@@ -165,16 +174,16 @@ func (db *Database) QuestionExists(questionType string, number int) (bool, error
 }
 
 // ResponseExists will check if the response being POSTed already exists
-func (db *Database) ResponseExists(responderID string, presenterID, questionType string, number int) (bool, error) {
+func (db *Database) ResponseExists(responderID string, presentationID int, questionType string, number int) (bool, error) {
 	q := `SELECT COUNT(*)
 			FROM response
-			WHERE response.responder_id = $1
-			AND response.presenter_id = $2
-			AND response.type = $3
-			AND response.number = $4`
+			WHERE responder_id = $1
+			AND presentation_id = $2
+			AND type = $3
+			AND number = $4`
 
 	var count int
-	if err := db.Get(&count, q, responderID, presenterID, questionType, number); err != nil {
+	if err := db.Get(&count, q, responderID, presentationID, questionType, number); err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil
 		}
@@ -192,7 +201,7 @@ func (db *Database) ResponseExists(responderID string, presenterID, questionType
 }
 
 // RespondToQuestion sends an insert or update query to the database
-func (db *Database) RespondToQuestion(responderID string, presenterID string, questionType string, number int, answer string) (bool, error) {
+func (db *Database) RespondToQuestion(responderID string, presentationID int, questionType string, number int, answer string) (bool, error) {
 	questionExists, err := db.QuestionExists(questionType, number)
 
 	if err != nil {
@@ -204,7 +213,7 @@ func (db *Database) RespondToQuestion(responderID string, presenterID string, qu
 	}
 
 	// Check if response already exists
-	respExists, err := db.ResponseExists(responderID, presenterID, questionType, number)
+	respExists, err := db.ResponseExists(responderID, presentationID, questionType, number)
 
 	if err != nil {
 		return false, fmt.Errorf("ResponseExists: %v", err)
@@ -216,13 +225,13 @@ func (db *Database) RespondToQuestion(responderID string, presenterID string, qu
 		WHERE
 		responder_id = $2
 		AND
-		presenter_id = $3
+		presentation_id = $3
 		AND
 		type = $4
 		AND
 		number = $5`
 
-		_, err := db.Exec(q, answer, responderID, presenterID, questionType, number)
+		_, err := db.Exec(q, answer, responderID, presentationID, questionType, number)
 
 		if err != nil {
 			log.Println("Error updating response")
@@ -232,10 +241,10 @@ func (db *Database) RespondToQuestion(responderID string, presenterID string, qu
 		log.Printf("Updated response to %s %s\n", questionType, strconv.Itoa(number))
 		return true, nil
 	} else {
-		q := `INSERT INTO response (responder_id, presenter_id, type, number, answer)
+		q := `INSERT INTO response (responder_id, presentation_id, type, number, answer)
 				VALUES ($1, $2, $3, $4, $5)`
 
-		_, err := db.Exec(q, responderID, presenterID, questionType, number, answer)
+		_, err := db.Exec(q, responderID, presentationID, questionType, number, answer)
 
 		if err != nil {
 			log.Println("Error inserting response")
@@ -248,17 +257,17 @@ func (db *Database) RespondToQuestion(responderID string, presenterID string, qu
 }
 
 // GetResponses gets a slice of responses from the current responder to the desired presenter
-func (db *Database) GetResponses(responderID string, presenterID string) ([]ResponseDisplay, error) {
+func (db *Database) GetResponses(responderID string, presentationID int) ([]ResponseDisplay, error) {
 	q := `SELECT response.type, response.number, question.prompt, response.answer
 			FROM response, question
 			WHERE response.type = question.type
 			AND response.number = question.number
 			AND responder_id = $1
-			AND presenter_id = $2`
+			AND presentation_id = $2`
 
 	responses := []ResponseDisplay{}
 
-	if err := db.Select(&responses, q, responderID, presenterID); err != nil {
+	if err := db.Select(&responses, q, responderID, presentationID); err != nil {
 		return nil, fmt.Errorf("Select: %v", err)
 	}
 

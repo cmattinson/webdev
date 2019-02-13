@@ -1,12 +1,15 @@
 # -*- restclient -*-
 #
-# Posts an identifier to the API
-POST http://localhost:8080/api/v1
+# Tests authorization to API
+GET http://localhost:8080/api/v1
 Authorization: Bearer jqYPeRSj
 
-# Post an unauthorized user to the API
-POST http://localhost:8080/api/v1
+# Test authorization with unauthorized user
+GET http://localhost:8080/api/v1
 Authorization: Bearer notAuthorized
+
+# Test authorization with no bearer token
+GET http://localhost:8080/api/v1
 
 # Gets the list of presenters, shows response and headers underneath
 GET http://localhost:8080/api/v1/presenters
@@ -17,15 +20,15 @@ GET http://localhost:8080/api/v1/presenters
 Authorization: Bearer notAuthorized
 
 # Gets presentation info for a presenter
-GET http://localhost:8080/api/v1/presenters/cmTYdFRm
+GET http://localhost:8080/api/v1/presenters/1
 Authorization: Bearer jqYPeRSj
 
 # Attempts to get presenter info as unauthorized user
-GET http://localhost:8080/api/v1/presenters/cmTYdFRm
+GET http://localhost:8080/api/v1/presenters/1
 Authorization: Bearer notAuthorized
 
 # Sends a response to a question for the authenticated user
-POST http://localhost:8080/api/v1/presenters/cmTYdFRm
+POST http://localhost:8080/api/v1/presenters/1
 Authorization: Bearer jqYPeRSj
 Content-Type: application/json
 
@@ -36,7 +39,7 @@ Content-Type: application/json
 }
 
 # Send another response to a question as authenticated user
-POST http://localhost:8080/api/v1/presenters/cmTYdFRm
+POST http://localhost:8080/api/v1/presenters/1
 Authorization: Bearer jqYPeRSj
 Content-Type: application/json
 
@@ -47,7 +50,7 @@ Content-Type: application/json
 }
 
 # Send another response to a question as authenticated user
-POST http://localhost:8080/api/v1/presenters/cmTYdFRm
+POST http://localhost:8080/api/v1/presenters/1
 Authorization: Bearer jqYPeRSj
 Content-Type: application/json
 
@@ -58,7 +61,7 @@ Content-Type: application/json
 }
 
 # Send an Open question response
-POST http://localhost:8080/api/v1/presenters/cmTYdFRm
+POST http://localhost:8080/api/v1/presenters/1
 Authorization: Bearer jqYPeRSj
 Content-Type: application/json
 
@@ -69,10 +72,10 @@ Content-Type: application/json
 }
 
 # Get the list of responses to the presenter
-GET http://localhost:8080/api/v1/responses/cmTYdFRm
+GET http://localhost:8080/api/v1/responses/1
 Authorization: Bearer jqYPeRSj
 
 # Attempt to get responses for unauthorized user
-GET http://localhost:8080/api/v1/responses/cmTYdFRm
+GET http://localhost:8080/api/v1/responses/1
 Authorization: Bearer notAuthorized
 	

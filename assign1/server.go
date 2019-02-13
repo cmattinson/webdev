@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gorilla/mux"
@@ -15,11 +16,6 @@ import (
 // Handler wraps the Database struct
 type Handler struct {
 	*Database
-}
-
-// Responder stores an authentication request
-type Responder struct {
-	Identifier string `json:"id"`
 }
 
 // ResponseRequest stores an incoming question response request
@@ -47,14 +43,14 @@ func main() {
 
 	router := mux.NewRouter()
 	router.HandleFunc("/api/v1", handlers.authentication(handlers.authorize)).
-		Methods("POST")
+		Methods("GET")
 	router.HandleFunc("/api/v1/presenters", handlers.authentication(handlers.presentersListHandler)).
 		Methods("GET")
-	router.HandleFunc("/api/v1/presenters/{identifier}", handlers.authentication(handlers.presenterHandler)).
+	router.HandleFunc("/api/v1/presenters/{presentation_id}", handlers.authentication(handlers.presenterHandler)).
 		Methods("GET")
-	router.HandleFunc("/api/v1/presenters/{identifier}", handlers.authentication(handlers.sendResponseHandler)).
+	router.HandleFunc("/api/v1/presenters/{presentation_id}", handlers.authentication(handlers.sendResponseHandler)).
 		Methods("POST")
-	router.HandleFunc("/api/v1/responses/{identifier}", handlers.authentication(handlers.getResponsesHandler)).
+	router.HandleFunc("/api/v1/responses/{presentation_id}", handlers.authentication(handlers.getResponsesHandler)).
 		Methods("GET")
 
 	log.Fatal(http.ListenAndServe(":8080", router))
@@ -76,6 +72,7 @@ func contextWithIdentifier(c context.Context, r *http.Request) context.Context {
 	if len(split) == 1 {
 		return nil
 	}
+
 	identifier := split[1]
 	identifier = strings.TrimLeft(identifier, " ")
 
@@ -147,9 +144,15 @@ func (h *Handler) presentersListHandler(w http.ResponseWriter, r *http.Request) 
 // Handle getting info for a specific presenter
 func (h *Handler) presenterHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	presenterID := vars["identifier"]
+	idFromRequest := vars["presentation_id"]
 
-	presentation, err := h.GetPresentation(presenterID)
+	presentationID, err := strconv.Atoi(idFromRequest)
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
+	presentation, err := h.GetPresentation(presentationID)
 
 	if err != nil {
 		panic(err)
@@ -184,17 +187,23 @@ func (h *Handler) sendResponseHandler(w http.ResponseWriter, r *http.Request) {
 	responderID := getIdentifierFromContext(r.Context())
 
 	vars := mux.Vars(r)
-	presenterID := vars["identifier"]
+	idFromRequest := vars["presentation_id"]
+
+	presentationID, err := strconv.Atoi(idFromRequest)
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
 
 	// Decode the request into a ResponseRequest struct
 	response := ResponseRequest{}
-	err := json.NewDecoder(r.Body).Decode(&response)
+	err = json.NewDecoder(r.Body).Decode(&response)
 
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 	}
 
-	responseSent, err := h.RespondToQuestion(responderID, presenterID, response.Type, response.Number, response.Answer)
+	responseSent, err := h.RespondToQuestion(responderID, presentationID, response.Type, response.Number, response.Answer)
 
 	if err != nil {
 		log.Printf("%v\n", err)
@@ -209,9 +218,15 @@ func (h *Handler) getResponsesHandler(w http.ResponseWriter, r *http.Request) {
 	responderID := getIdentifierFromContext(r.Context())
 
 	vars := mux.Vars(r)
-	presenterID := vars["identifier"]
+	idFromRequest := vars["presentation_id"]
 
-	responses, err := h.GetResponses(responderID, presenterID)
+	presentationID, err := strconv.Atoi(idFromRequest)
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
+	responses, err := h.GetResponses(responderID, presentationID)
 
 	if err != nil {
 		panic(err)

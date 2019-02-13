@@ -1,6 +1,6 @@
 -- +goose Up
 CREATE TABLE student (
-    identifier TEXT PRIMARY KEY,
+    identifier TEXT PRIMARY KEY NOT NULL,
     first_name TEXT,
     last_name TEXT,
 
@@ -15,25 +15,24 @@ CREATE TABLE question (
     PRIMARY KEY (type, number)
 );
 
-CREATE TABLE response (
-    responder_id TEXT NOT NULL REFERENCES student(identifier) ON DELETE CASCADE,
-    presenter_id TEXT NOT NULL REFERENCES student(identifier) ON DELETE CASCADE,
-    type TEXT,
-    number INTEGER,
-    answer TEXT,
-
-    PRIMARY KEY (responder_id, presenter_id, type, number)
-);
-
 CREATE TABLE presentation (
-    title TEXT PRIMARY KEY,
-    first_name TEXT,
-    last_name TEXT,
+    presentation_id INT PRIMARY KEY,
+    title TEXT,
     date TEXT,
     time TEXT,
     identifier TEXT NOT NULL REFERENCES student(identifier) ON DELETE CASCADE,
 
-    UNIQUE(title, identifier)
+    UNIQUE(presentation_id, title, identifier)
+);
+
+CREATE TABLE response (
+    responder_id TEXT NOT NULL REFERENCES student(identifier) ON DELETE CASCADE,
+    presentation_id INT NOT NULL REFERENCES presentation(presentation_id) ON DELETE CASCADE,
+    type TEXT,
+    number INTEGER,
+    answer TEXT,
+
+    PRIMARY KEY (responder_id, presentation_id, type, number)
 );
 
 -- +goose Down

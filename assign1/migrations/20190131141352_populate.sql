@@ -38,11 +38,11 @@ values ('Open', 1, 'Provide any comments for the presenter.');
 insert into question (type, number, prompt) 
 values ('Open', 2, 'Provide any comments for your instructor.');
 
-insert into presentation (title, first_name, last_name, date, time, identifier) 
-values ('An Introduction to Go Programming', 'Nick', 'Boers', '2019-01-31', '09:30', 'cmTYdFRm');
+insert into presentation (presentation_id, title, date, time, identifier) 
+values (1, 'An Introduction to Go Programming', '2019-01-31', '09:30', 'cmTYdFRm');
 
-insert into presentation (title, first_name, last_name, date, time, identifier)
-values ('Restful API Design', 'Chris', 'Mattinson', '2019-02-08', '11:30', 'jqYPeRSj');
+insert into presentation (presentation_id, title, date, time, identifier)
+values (2, 'Restful API Design', '2019-02-08', '11:30', 'jqYPeRSj');
 
 -- +goose Down
 DELETE FROM student;
