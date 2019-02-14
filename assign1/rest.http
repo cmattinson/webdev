@@ -78,4 +78,34 @@ Authorization: Bearer jqYPeRSj
 # Attempt to get responses for unauthorized user
 GET http://localhost:8080/api/v1/responses/1
 Authorization: Bearer notAuthorized
+
+# Attempt to delete a response from the API
+DELETE http://localhost:8080/api/v1/responses/1
+Authorization: Bearer jqYPeRSj
+Content-Type: application/json
+
+{
+	"type": "Open",
+	"number": 1
+}
+
+# Attempt to delete a response from the API
+DELETE http://localhost:8080/api/v1/responses/1
+Authorization: Bearer notAuthorized
+Content-Type: application/json
+
+{
+	"type": "Open",
+	"number": 1
+}
+
+# Attempt to delete a response from the API
+DELETE http://localhost:8080/api/v1/responses/1
+Authorization: Bearer jqYPeRSj
+Content-Type: application/json
+
+{
+	"type": "Open",
+	"number": 5
+}
 	

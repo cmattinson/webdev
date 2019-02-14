@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
@@ -23,6 +24,21 @@ type ResponseRequest struct {
 	Type   string `json:"type"`
 	Number int    `json:"number"`
 	Answer string `json:"answer"`
+}
+
+// DeleteRequest stores a delete response request
+type DeleteRequest struct {
+	Type   string `json:"type"`
+	Number int    `json:"number"`
+}
+
+// Log will be used to encoding terminal logs to JSON
+type Log struct {
+	URI           string  `json:"uri"`
+	Method        string  `json:"method"`
+	RemoteAddress string  `json:"remoteAddress"`
+	Token         string  `json:"token"`
+	Duration      float64 `json:"duration"`
 }
 
 // https://www.joeshaw.org/revisiting-context-and-http-handler-for-go-17/
@@ -42,16 +58,18 @@ func main() {
 	}
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1", handlers.authentication(handlers.authorize)).
+	router.HandleFunc("/api/v1", handlers.authentication(logger(handlers.authorize))).
 		Methods("GET")
-	router.HandleFunc("/api/v1/presenters", handlers.authentication(handlers.presentersListHandler)).
+	router.HandleFunc("/api/v1/presenters", handlers.authentication(logger(handlers.presentersListHandler))).
 		Methods("GET")
-	router.HandleFunc("/api/v1/presenters/{presentation_id}", handlers.authentication(handlers.presenterHandler)).
+	router.HandleFunc("/api/v1/presenters/{presentation_id}", handlers.authentication(logger(handlers.presenterHandler))).
 		Methods("GET")
-	router.HandleFunc("/api/v1/presenters/{presentation_id}", handlers.authentication(handlers.sendResponseHandler)).
+	router.HandleFunc("/api/v1/presenters/{presentation_id}", handlers.authentication(logger(handlers.sendResponseHandler))).
 		Methods("POST")
-	router.HandleFunc("/api/v1/responses/{presentation_id}", handlers.authentication(handlers.getResponsesHandler)).
+	router.HandleFunc("/api/v1/responses/{presentation_id}", handlers.authentication(logger(handlers.getResponsesHandler))).
 		Methods("GET")
+	router.HandleFunc("/api/v1/responses/{presentation_id}", handlers.authentication(logger(handlers.deleteResponseHandler))).
+		Methods("DELETE")
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
@@ -118,6 +136,29 @@ func (h *Handler) authentication(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
+func logger(next http.HandlerFunc) http.HandlerFunc {
+	logger := Log{}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		next.ServeHTTP(w, r)
+		duration := time.Now().Sub(start)
+
+		logger.URI = r.RequestURI
+		logger.Method = r.Method
+		logger.RemoteAddress = r.RemoteAddr
+		logger.Token = getIdentifierFromContext(r.Context())
+		logger.Duration = duration.Seconds()
+
+		logJSON, err := json.Marshal(&logger)
+
+		if err != nil {
+			log.Println("Error logging request")
+		}
+
+		fmt.Printf("%s\n", logJSON)
+	})
+}
+
 // Upon successful authentication, redirect the student to the presenters list
 func (h *Handler) authorize(w http.ResponseWriter, r *http.Request) {
 	log.Println("Student authorized")
@@ -135,7 +176,7 @@ func (h *Handler) presentersListHandler(w http.ResponseWriter, r *http.Request) 
 	studentJSON, err := json.MarshalIndent(students, "", "    ")
 
 	if err != nil {
-		panic(err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
 	fmt.Fprintf(w, "%s\n", studentJSON)
@@ -143,10 +184,11 @@ func (h *Handler) presentersListHandler(w http.ResponseWriter, r *http.Request) 
 
 // Handle getting info for a specific presenter
 func (h *Handler) presenterHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	idFromRequest := vars["presentation_id"]
+	presentationID, err := GetPresentationID(r)
 
-	presentationID, err := strconv.Atoi(idFromRequest)
+	if presentationID == -1 {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
 
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -155,14 +197,14 @@ func (h *Handler) presenterHandler(w http.ResponseWriter, r *http.Request) {
 	presentation, err := h.GetPresentation(presentationID)
 
 	if err != nil {
-		panic(err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
 	// https://play.golang.org/p/6jHI-MRx0z
 	presentationJSON, err := json.MarshalIndent(presentation, "", "    ")
 
 	if err != nil {
-		panic(err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
 	fmt.Fprintf(w, "%s\n", presentationJSON)
@@ -170,26 +212,25 @@ func (h *Handler) presenterHandler(w http.ResponseWriter, r *http.Request) {
 	questions, err := h.GetQuestions()
 
 	if err != nil {
-		panic(err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
 	questionJSON, err := json.MarshalIndent(questions, "", "    ")
 
 	if err != nil {
-		panic(err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
 	fmt.Fprintf(w, "%s\n", questionJSON)
 }
 
 func (h *Handler) sendResponseHandler(w http.ResponseWriter, r *http.Request) {
-	// Get the authenticated user's identifier from the request context
 	responderID := getIdentifierFromContext(r.Context())
+	presentationID, err := GetPresentationID(r)
 
-	vars := mux.Vars(r)
-	idFromRequest := vars["presentation_id"]
-
-	presentationID, err := strconv.Atoi(idFromRequest)
+	if presentationID == -1 {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
 
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -216,11 +257,11 @@ func (h *Handler) sendResponseHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) getResponsesHandler(w http.ResponseWriter, r *http.Request) {
 	responderID := getIdentifierFromContext(r.Context())
+	presentationID, err := GetPresentationID(r)
 
-	vars := mux.Vars(r)
-	idFromRequest := vars["presentation_id"]
-
-	presentationID, err := strconv.Atoi(idFromRequest)
+	if presentationID == -1 {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
 
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -229,16 +270,61 @@ func (h *Handler) getResponsesHandler(w http.ResponseWriter, r *http.Request) {
 	responses, err := h.GetResponses(responderID, presentationID)
 
 	if err != nil {
-		panic(err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
 	// https://play.golang.org/p/6jHI-MRx0z
 	responsesJSON, err := json.MarshalIndent(responses, "", "    ")
 
 	if err != nil {
-		panic(err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
 	fmt.Fprintf(w, "%s\n", responsesJSON)
 
+}
+
+func (h *Handler) deleteResponseHandler(w http.ResponseWriter, r *http.Request) {
+	responderID := getIdentifierFromContext(r.Context())
+	presentationID, err := GetPresentationID(r)
+
+	if presentationID == -1 {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
+	// Decode the request into a DeleteRequest struct
+	delete := DeleteRequest{}
+	err = json.NewDecoder(r.Body).Decode(&delete)
+
+	deleted, err := h.DeleteResponse(responderID, presentationID, delete.Type, delete.Number)
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
+	if !deleted {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+	}
+
+	fmt.Fprintf(w, "Response deleted")
+	http.Error(w, http.StatusText(http.StatusOK), http.StatusOK)
+}
+
+// GetPresentationID parses the presentation ID from the http request
+func GetPresentationID(r *http.Request) (int, error) {
+
+	vars := mux.Vars(r)
+	idFromRequest := vars["presentation_id"]
+
+	presentationID, err := strconv.Atoi(idFromRequest)
+
+	if err != nil {
+		return -1, err
+	}
+
+	return presentationID, nil
 }

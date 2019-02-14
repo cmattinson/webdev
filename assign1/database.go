@@ -273,3 +273,34 @@ func (db *Database) GetResponses(responderID string, presentationID int) ([]Resp
 
 	return responses, nil
 }
+
+// DeleteResponse will delete the requested response from the database
+func (db *Database) DeleteResponse(responderID string, presentationID int, questionType string, number int) (bool, error) {
+	q := `DELETE FROM response
+			WHERE responder_id = $1
+			AND presentation_id = $2
+			AND type = $3
+			AND number = $4`
+
+	exists, err := db.ResponseExists(responderID, presentationID, questionType, number)
+
+	if err != nil {
+		log.Println("Error deleting response")
+		return false, err
+	}
+
+	if !exists {
+		log.Println("Response to be deleted does not exist")
+		return false, nil
+	}
+
+	_, err = db.Exec(q, responderID, presentationID, questionType, number)
+
+	if err != nil {
+		log.Println("Error deleting response")
+		return false, err
+	}
+
+	log.Println("Response deleted")
+	return true, nil
+}
