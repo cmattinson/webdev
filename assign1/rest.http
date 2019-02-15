@@ -11,23 +11,31 @@ Authorization: Bearer notAuthorized
 # Test authorization with no bearer token
 GET http://localhost:8080/api/v1
 
-# Gets the list of presenters, shows response and headers underneath
+# Gets the list of presenters
 GET http://localhost:8080/api/v1/presenters
 Authorization: Bearer jqYPeRSj
 
-# Attempts to get list of presenters as unauthorized student
-GET http://localhost:8080/api/v1/presenters
-Authorization: Bearer notAuthorized
+# Gets the list of presenters in XML
+GET http://localhost:8080/api/v1/presenters.xml
+Authorization: Bearer jqYPeRSj
 
-# Gets presentation info for a presenter
+# Gets the list of presenters
+GET http://localhost:8080/api/v1/presenters.json
+Authorization: Bearer jqYPeRSj
+
+# Gets presentation info for a presenter (Survey form, JSON default)
 GET http://localhost:8080/api/v1/presenters/1
 Authorization: Bearer jqYPeRSj
 
-# Attempts to get presenter info as unauthorized user
-GET http://localhost:8080/api/v1/presenters/1
-Authorization: Bearer notAuthorized
+# Gets presentation info in JSON
+GET http://localhost:8080/api/v1/presenters/1.json
+Authorization: Bearer jqYPeRSj
 
-# Sends a response to a question for the authenticated user
+# Gets presentation info in XML
+GET http://localhost:8080/api/v1/presenters/1.xml
+Authorization: Bearer jqYPeRSj
+
+# Sends a response to a question as the authenticated user
 POST http://localhost:8080/api/v1/presenters/1
 Authorization: Bearer jqYPeRSj
 Content-Type: application/json
@@ -38,6 +46,17 @@ Content-Type: application/json
 	"answer": "Neutral"
 }
 
+# Update the response above
+PUT http://localhost:8080/api/v1/presenters/1
+Authorization: Bearer jqYPeRSj
+Content-Type: application/json
+
+{
+	"type": "M/C",
+	"number": 1,
+	"answer": "Agree"
+}
+
 # Send another response to a question as authenticated user
 POST http://localhost:8080/api/v1/presenters/1
 Authorization: Bearer jqYPeRSj
@@ -46,7 +65,7 @@ Content-Type: application/json
 {
 	"type": "M/C",
 	"number": 2,
-	"answer": "Strongly Disagree"
+	"answer": "Disagree"
 }
 
 # Send another response to a question as authenticated user
@@ -75,31 +94,25 @@ Content-Type: application/json
 GET http://localhost:8080/api/v1/responses/1
 Authorization: Bearer jqYPeRSj
 
-# Attempt to get responses for unauthorized user
-GET http://localhost:8080/api/v1/responses/1
-Authorization: Bearer notAuthorized
+# Get the list of responses to the presenter
+GET http://localhost:8080/api/v1/responses/1.json
+Authorization: Bearer jqYPeRSj
 
-# Attempt to delete a response from the API
+# Get the list of responses to the presenter
+GET http://localhost:8080/api/v1/responses/1.xml
+Authorization: Bearer jqYPeRSj
+
+# Delete the response for Multiple Choice 1
 DELETE http://localhost:8080/api/v1/responses/1
 Authorization: Bearer jqYPeRSj
 Content-Type: application/json
 
 {
-	"type": "Open",
+	"type": "M/C",
 	"number": 1
 }
 
-# Attempt to delete a response from the API
-DELETE http://localhost:8080/api/v1/responses/1
-Authorization: Bearer notAuthorized
-Content-Type: application/json
-
-{
-	"type": "Open",
-	"number": 1
-}
-
-# Attempt to delete a response from the API
+# Attempt to delete a response that doesn't exist
 DELETE http://localhost:8080/api/v1/responses/1
 Authorization: Bearer jqYPeRSj
 Content-Type: application/json

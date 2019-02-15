@@ -1,10 +1,16 @@
+/*
+	CMPT 315 - Assignment 1
+	Author: Chris Mattinson
+
+	This program handles database operations and accessess
+*/
+
 package main
 
 import (
 	"database/sql"
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -14,6 +20,13 @@ type Student struct {
 	Identifier string `db:"identifier"`
 	FirstName  string `db:"first_name"`
 	LastName   string `db:"last_name"`
+}
+
+// StudentInfo will be used for displaying info for each presenter
+type StudentInfo struct {
+	FirstName      string `db:"first_name"`
+	LastName       string `db:"last_name"`
+	PresentationID int    `db:"presentation_id"`
 }
 
 // Question represents all data for the questions for each presenter
@@ -26,7 +39,7 @@ type Question struct {
 // Response represents a response to a question by a certain student
 type Response struct {
 	ResponderID    string `db:"responder_id"`
-	PresentationID string `db:"presentation_id"`
+	PresentationID int    `db:"presentation_id"`
 	Type           string `db:"type"`
 	Number         int    `db:"number"`
 	Answer         string `db:"answer"`
@@ -108,10 +121,12 @@ func (db *Database) Authenticate(identifier string) (bool, error) {
 }
 
 // GetPresenters obtains a slice of students from the database
-func (db *Database) GetPresenters() ([]Student, error) {
-	q := `SELECT * FROM student`
+func (db *Database) GetPresenters() ([]StudentInfo, error) {
+	q := `SELECT first_name, last_name, presentation_id
+			FROM student, presentation
+			WHERE student.identifier = presentation.identifier`
 
-	students := []Student{}
+	students := []StudentInfo{}
 
 	if err := db.Select(&students, q); err != nil {
 		return nil, fmt.Errorf("Select: %v", err)
@@ -200,8 +215,8 @@ func (db *Database) ResponseExists(responderID string, presentationID int, quest
 
 }
 
-// RespondToQuestion sends an insert or update query to the database
-func (db *Database) RespondToQuestion(responderID string, presentationID int, questionType string, number int, answer string) (bool, error) {
+// UpdateResponse will update a response from a PUT request
+func (db *Database) UpdateResponse(responderID string, presentationID int, questionType string, number int, answer string) (bool, error) {
 	questionExists, err := db.QuestionExists(questionType, number)
 
 	if err != nil {
@@ -234,26 +249,35 @@ func (db *Database) RespondToQuestion(responderID string, presentationID int, qu
 		_, err := db.Exec(q, answer, responderID, presentationID, questionType, number)
 
 		if err != nil {
-			log.Println("Error updating response")
 			return false, err
 		}
-
-		log.Printf("Updated response to %s %s\n", questionType, strconv.Itoa(number))
-		return true, nil
-	} else {
-		q := `INSERT INTO response (responder_id, presentation_id, type, number, answer)
-				VALUES ($1, $2, $3, $4, $5)`
-
-		_, err := db.Exec(q, responderID, presentationID, questionType, number, answer)
-
-		if err != nil {
-			log.Println("Error inserting response")
-			return false, err
-		}
-
-		log.Printf("Inserted response to %s %s\n", questionType, strconv.Itoa(number))
 		return true, nil
 	}
+
+	return false, nil
+}
+
+// RespondToQuestion sends an insert or update query to the database
+func (db *Database) RespondToQuestion(responderID string, presentationID int, questionType string, number int, answer string) (bool, error) {
+	questionExists, err := db.QuestionExists(questionType, number)
+
+	if err != nil {
+		return false, fmt.Errorf("QuestionExists: %v", err)
+	}
+
+	if !questionExists {
+		return false, fmt.Errorf("Question does not exist in the database")
+	}
+
+	q := `INSERT INTO response (responder_id, presentation_id, type, number, answer)
+				VALUES ($1, $2, $3, $4, $5)`
+
+	_, err = db.Exec(q, responderID, presentationID, questionType, number, answer)
+
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // GetResponses gets a slice of responses from the current responder to the desired presenter

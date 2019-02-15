@@ -1,10 +1,22 @@
+/*
+	CMPT 315 - Assignment 1
+
+	Program: Web server
+	Author: Chris Mattinson
+
+	This programs handles all of the requests
+	and responses to/from the web server
+*/
+
 package main
 
 import (
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -32,13 +44,20 @@ type DeleteRequest struct {
 	Number int    `json:"number"`
 }
 
-// Log will be used to encoding terminal logs to JSON
+// Log will be used for encoding terminal logs to JSON
 type Log struct {
-	URI           string  `json:"uri"`
-	Method        string  `json:"method"`
-	RemoteAddress string  `json:"remoteAddress"`
-	Token         string  `json:"token"`
-	Duration      float64 `json:"duration"`
+	URI           string `json:"uri"`
+	Method        string `json:"method"`
+	RemoteAddress string `json:"remoteAddress"`
+	Token         string `json:"token"`
+	Duration      string `json:"duration"`
+}
+
+// CustomResponse will be used to custom messages in the response
+type CustomResponse struct {
+	Message string `json:"message"`
+	Code    int    `json:"statusCode"`
+	Error   string `json:"error"`
 }
 
 // https://www.joeshaw.org/revisiting-context-and-http-handler-for-go-17/
@@ -49,7 +68,7 @@ const apiID key = ""
 func main() {
 	db, err := OpenDatabase()
 	if err != nil {
-		log.Fatalf("OpenDatabase: %v", err)
+		log.Fatalf("Unable to open database: %v", err)
 	}
 	defer db.Close()
 
@@ -60,23 +79,36 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/api/v1", handlers.authentication(logger(handlers.authorize))).
 		Methods("GET")
+
+	// Default case, will be encoded in json
 	router.HandleFunc("/api/v1/presenters", handlers.authentication(logger(handlers.presentersListHandler))).
 		Methods("GET")
-	router.HandleFunc("/api/v1/presenters/{presentation_id}", handlers.authentication(logger(handlers.presenterHandler))).
+	// Format is specified
+	router.HandleFunc("/api/v1/presenters.{format:(?:json|xml)}", handlers.authentication(logger(handlers.presentersListHandler))).
 		Methods("GET")
-	router.HandleFunc("/api/v1/presenters/{presentation_id}", handlers.authentication(logger(handlers.sendResponseHandler))).
-		Methods("POST")
-	router.HandleFunc("/api/v1/responses/{presentation_id}", handlers.authentication(logger(handlers.getResponsesHandler))).
+
+	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.presenterHandler))).
 		Methods("GET")
-	router.HandleFunc("/api/v1/responses/{presentation_id}", handlers.authentication(logger(handlers.deleteResponseHandler))).
+	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}.{format:(?:json|xml)}", handlers.authentication(logger(handlers.presenterHandler))).
+		Methods("GET")
+
+	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.sendResponseHandler))).
+		Methods("POST", "PUT")
+
+	router.HandleFunc("/api/v1/responses/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.getResponsesHandler))).
+		Methods("GET")
+	router.HandleFunc("/api/v1/responses/{presentation_id:[0-9]+}.{format:(?:json|xml)}", handlers.authentication(logger(handlers.getResponsesHandler))).
+		Methods("GET")
+
+	router.HandleFunc("/api/v1/responses/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.deleteResponseHandler))).
 		Methods("DELETE")
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
-// contextWithIdentifier prepares a new context with the identifier
+// contextWithIdentifier prepares a new request context with the identifier
 // https://www.joeshaw.org/revisiting-context-and-http-handler-for-go-17/
-func contextWithIdentifier(c context.Context, r *http.Request) context.Context {
+func contextWithIdentifier(ctx context.Context, r *http.Request) context.Context {
 	header := r.Header.Get("Authorization")
 
 	// No authorization header passed
@@ -94,13 +126,13 @@ func contextWithIdentifier(c context.Context, r *http.Request) context.Context {
 	identifier := split[1]
 	identifier = strings.TrimLeft(identifier, " ")
 
-	return context.WithValue(c, apiID, identifier)
+	return context.WithValue(ctx, apiID, identifier)
 }
 
 // getIdentifierFromContext returns the identifier string from the context
 // https://www.joeshaw.org/revisiting-context-and-http-handler-for-go-17/
-func getIdentifierFromContext(c context.Context) string {
-	return c.Value(apiID).(string)
+func getIdentifierFromContext(ctx context.Context) string {
+	return ctx.Value(apiID).(string)
 }
 
 // authentication is middleware to check that the responder is authorized to the API
@@ -116,19 +148,22 @@ func (h *Handler) authentication(next http.HandlerFunc) http.HandlerFunc {
 		if c == nil {
 			w.Header().Set("WWW-Authenticate", "Bearer: identifier")
 			w.WriteHeader(401)
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
 
 		identifier := getIdentifierFromContext(c)
-
 		isStudent, err := h.Authenticate(identifier)
 
 		if err != nil {
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			AddCustomResponse(w, "Error authenticating student", 500, http.StatusText(500))
 		}
 
 		if !isStudent {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			message := identifier + " is not a recognized identifier"
+			AddCustomResponse(w, message, 401, http.StatusText(http.StatusUnauthorized))
 			return
 		}
 
@@ -136,18 +171,21 @@ func (h *Handler) authentication(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
+// logger will log HTTP request details to the terminal
 func logger(next http.HandlerFunc) http.HandlerFunc {
 	logger := Log{}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
-		duration := time.Now().Sub(start)
+		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+		duration := time.Now().Sub(start).Seconds() * 1000 // in milliseconds
+		durationString := fmt.Sprintf("%.2f ms", duration)
 
 		logger.URI = r.RequestURI
 		logger.Method = r.Method
-		logger.RemoteAddress = r.RemoteAddr
+		logger.RemoteAddress = ip
 		logger.Token = getIdentifierFromContext(r.Context())
-		logger.Duration = duration.Seconds()
+		logger.Duration = durationString
 
 		logJSON, err := json.Marshal(&logger)
 
@@ -167,61 +205,62 @@ func (h *Handler) authorize(w http.ResponseWriter, r *http.Request) {
 
 // Handle getting the list of presenters
 func (h *Handler) presentersListHandler(w http.ResponseWriter, r *http.Request) {
-	students, err := h.GetPresenters()
+	if r.Method == "GET" {
+		vars := mux.Vars(r)
+		format := vars["format"]
 
-	if err != nil {
-		log.Fatalf("GetPresenters: %v", err)
+		students, err := h.GetPresenters()
+
+		if err != nil {
+			log.Fatalf("GetPresenters: %v", err)
+		}
+
+		if format == "" {
+			EncodeOutput(w, students, "json")
+		} else {
+			EncodeOutput(w, students, format)
+		}
+	} else {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		AddCustomResponse(w, "Method must be GET", 405, http.StatusText(405))
 	}
 
-	studentJSON, err := json.MarshalIndent(students, "", "    ")
-
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	}
-
-	fmt.Fprintf(w, "%s\n", studentJSON)
 }
 
-// Handle getting info for a specific presenter
+// Handle getting info for a specific presenter (Survey form)
 func (h *Handler) presenterHandler(w http.ResponseWriter, r *http.Request) {
+	// Get the presentation ID from the URL
 	presentationID, err := GetPresentationID(r)
-
 	if presentationID == -1 {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	}
-
-	if err != nil {
+		AddCustomResponse(w, "Invalid presentation ID", 401, http.StatusText(http.StatusUnauthorized))
+		return
+	} else if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
 
 	presentation, err := h.GetPresentation(presentationID)
-
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
-
-	// https://play.golang.org/p/6jHI-MRx0z
-	presentationJSON, err := json.MarshalIndent(presentation, "", "    ")
-
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	}
-
-	fmt.Fprintf(w, "%s\n", presentationJSON)
 
 	questions, err := h.GetQuestions()
-
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
 
-	questionJSON, err := json.MarshalIndent(questions, "", "    ")
+	vars := mux.Vars(r)
+	format := vars["format"]
 
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	if format == "" {
+		EncodeOutput(w, presentation, "json")
+		EncodeOutput(w, questions, "json")
+	} else {
+		EncodeOutput(w, presentation, format)
+		EncodeOutput(w, questions, format)
 	}
-
-	fmt.Fprintf(w, "%s\n", questionJSON)
 }
 
 func (h *Handler) sendResponseHandler(w http.ResponseWriter, r *http.Request) {
@@ -230,10 +269,13 @@ func (h *Handler) sendResponseHandler(w http.ResponseWriter, r *http.Request) {
 
 	if presentationID == -1 {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		AddCustomResponse(w, "Error parsing presentation ID", 500, http.StatusText(500))
+		return
 	}
 
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
 
 	// Decode the request into a ResponseRequest struct
@@ -242,17 +284,44 @@ func (h *Handler) sendResponseHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		AddCustomResponse(w, "Unable to parse response", 400, http.StatusText(400))
+		return
 	}
 
-	responseSent, err := h.RespondToQuestion(responderID, presentationID, response.Type, response.Number, response.Answer)
+	var responseSent bool
 
-	if err != nil {
-		log.Printf("%v\n", err)
+	if r.Method == "POST" {
+		respExists, err := h.ResponseExists(responderID, presentationID, response.Type, response.Number)
+
+		if respExists && err == nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			AddCustomResponse(w, "Response already exists in the database", 400, http.StatusText(400))
+			return
+		} else if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			AddCustomResponse(w, err.Error(), 500, http.StatusText(http.StatusInternalServerError))
+			return
+		} else if !respExists && err == nil {
+			responseSent, err = h.RespondToQuestion(responderID, presentationID, response.Type, response.Number, response.Answer)
+		}
+
+	} else if r.Method == "PUT" {
+		responseSent, err = h.UpdateResponse(responderID, presentationID, response.Type, response.Number, response.Answer)
+	} else {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		AddCustomResponse(w, "Method must be POST or PUT", 405, http.StatusText(405))
+		return
 	}
 
 	if !responseSent {
 		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		AddCustomResponse(w, "Unable to send response", 400, http.StatusText(400))
+		return
 	}
+
+	message := fmt.Sprintf("Response to %s %d sent", response.Type, response.Number)
+	AddCustomResponse(w, message, http.StatusOK, "None")
+	PrintResponsePayload(w, responderID, presentationID, response.Type, response.Number, response.Answer)
 }
 
 func (h *Handler) getResponsesHandler(w http.ResponseWriter, r *http.Request) {
@@ -273,45 +342,50 @@ func (h *Handler) getResponsesHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
-	// https://play.golang.org/p/6jHI-MRx0z
-	responsesJSON, err := json.MarshalIndent(responses, "", "    ")
+	vars := mux.Vars(r)
+	format := vars["format"]
 
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	if format == "" {
+		EncodeOutput(w, responses, "json")
+	} else {
+		EncodeOutput(w, responses, format)
 	}
-
-	fmt.Fprintf(w, "%s\n", responsesJSON)
-
 }
 
 func (h *Handler) deleteResponseHandler(w http.ResponseWriter, r *http.Request) {
-	responderID := getIdentifierFromContext(r.Context())
-	presentationID, err := GetPresentationID(r)
+	if r.Method == "DELETE" {
+		responderID := getIdentifierFromContext(r.Context())
+		presentationID, err := GetPresentationID(r)
 
-	if presentationID == -1 {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		if presentationID == -1 {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
+
+		// Decode the request into a DeleteRequest struct
+		delete := DeleteRequest{}
+		err = json.NewDecoder(r.Body).Decode(&delete)
+
+		deleted, err := h.DeleteResponse(responderID, presentationID, delete.Type, delete.Number)
+
+		// The response does not exist
+		if !deleted && err == nil {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			AddCustomResponse(w, "The response does not exist", 400, http.StatusText(http.StatusBadRequest))
+		} else if !deleted && err != nil { // There was an error other than the response not existing
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			AddCustomResponse(w, err.Error(), 500, http.StatusText(http.StatusInternalServerError))
+		} else {
+			http.Error(w, http.StatusText(http.StatusOK), http.StatusOK)
+			AddCustomResponse(w, "Response deleted", 200, "None")
+		}
+	} else {
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+		AddCustomResponse(w, "Method must be DELETE", 405, http.StatusText(405))
 	}
-
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	}
-
-	// Decode the request into a DeleteRequest struct
-	delete := DeleteRequest{}
-	err = json.NewDecoder(r.Body).Decode(&delete)
-
-	deleted, err := h.DeleteResponse(responderID, presentationID, delete.Type, delete.Number)
-
-	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-	}
-
-	if !deleted {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-	}
-
-	fmt.Fprintf(w, "Response deleted")
-	http.Error(w, http.StatusText(http.StatusOK), http.StatusOK)
 }
 
 // GetPresentationID parses the presentation ID from the http request
@@ -327,4 +401,67 @@ func GetPresentationID(r *http.Request) (int, error) {
 	}
 
 	return presentationID, nil
+}
+
+// AddCustomResponse will create a JSON response using the CustomeResponse struct
+func AddCustomResponse(w http.ResponseWriter, message string, code int, errorString string) {
+	response := CustomResponse{}
+
+	response.Message = message
+	response.Code = code
+	response.Error = errorString
+
+	responseJSON, err := json.MarshalIndent(response, "", "    ")
+
+	if err != nil {
+		fmt.Errorf("AddResponse: %v", err)
+	}
+
+	fmt.Fprintf(w, "%s\n", responseJSON)
+}
+
+// PrintResponsePayload will print what is being sent to the Response table to the response writer
+func PrintResponsePayload(w http.ResponseWriter, responderID string, presentationID int, questionType string, number int, answer string) {
+	payload := Response{}
+
+	payload.ResponderID = responderID
+	payload.PresentationID = presentationID
+	payload.Type = questionType
+	payload.Number = number
+	payload.Answer = answer
+
+	payloadJSON, err := json.MarshalIndent(payload, "", "    ")
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
+	fmt.Fprintf(w, "Payload\n\n%s\n", payloadJSON)
+}
+
+// EncodeOutput will print the output in the desired format to the response writer
+func EncodeOutput(w http.ResponseWriter, output interface{}, format string) {
+	if format == "json" {
+		outputJSON, err := json.MarshalIndent(output, "", "    ")
+
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Fprintf(w, "%s\n", outputJSON)
+	} else if format == "xml" {
+		outputXML, err := xml.MarshalIndent(output, "", "    ")
+
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Fprintf(w, "%s\n", outputXML)
+	} else {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		AddCustomResponse(w, format+" is not supported", 400, http.StatusText(http.StatusBadRequest))
+		return
+	}
 }
