@@ -1,11 +1,8 @@
 /*
 	CMPT 315 - Assignment 1
-
-	Program: Web server
 	Author: Chris Mattinson
 
-	This programs handles all of the requests
-	and responses to/from the web server
+	This programs handles all of the requests and responses to/from the web server
 */
 
 package main
@@ -16,7 +13,6 @@ import (
 	"encoding/xml"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -53,7 +49,7 @@ type Log struct {
 	Duration      string `json:"duration"`
 }
 
-// CustomResponse will be used to custom messages in the response
+// CustomResponse will be used to add custom messages in the response
 type CustomResponse struct {
 	Message string `json:"message"`
 	Code    int    `json:"statusCode"`
@@ -77,9 +73,6 @@ func main() {
 	}
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1", handlers.authentication(logger(handlers.authorize))).
-		Methods("GET")
-
 	// Default case, will be encoded in json
 	router.HandleFunc("/api/v1/presenters", handlers.authentication(logger(handlers.presentersListHandler))).
 		Methods("GET")
@@ -147,8 +140,8 @@ func (h *Handler) authentication(next http.HandlerFunc) http.HandlerFunc {
 		// Authorization header was not included with the request
 		if c == nil {
 			w.Header().Set("WWW-Authenticate", "Bearer: identifier")
-			w.WriteHeader(401)
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			AddCustomResponse(w, "Authentication header required", 401, http.StatusText(401))
 			return
 		}
 
@@ -177,13 +170,12 @@ func logger(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		next.ServeHTTP(w, r)
-		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+
 		duration := time.Now().Sub(start).Seconds() * 1000 // in milliseconds
 		durationString := fmt.Sprintf("%.2f ms", duration)
-
 		logger.URI = r.RequestURI
 		logger.Method = r.Method
-		logger.RemoteAddress = ip
+		logger.RemoteAddress = r.RemoteAddr
 		logger.Token = getIdentifierFromContext(r.Context())
 		logger.Duration = durationString
 
@@ -197,34 +189,22 @@ func logger(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-// Upon successful authentication, redirect the student to the presenters list
-func (h *Handler) authorize(w http.ResponseWriter, r *http.Request) {
-	log.Println("Student authorized")
-	http.Error(w, http.StatusText(http.StatusFound), http.StatusFound)
-}
-
 // Handle getting the list of presenters
 func (h *Handler) presentersListHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
-		vars := mux.Vars(r)
-		format := vars["format"]
+	vars := mux.Vars(r)
+	format := vars["format"]
 
-		students, err := h.GetPresenters()
+	students, err := h.GetPresenters()
 
-		if err != nil {
-			log.Fatalf("GetPresenters: %v", err)
-		}
-
-		if format == "" {
-			EncodeOutput(w, students, "json")
-		} else {
-			EncodeOutput(w, students, format)
-		}
-	} else {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		AddCustomResponse(w, "Method must be GET", 405, http.StatusText(405))
+	if err != nil {
+		log.Fatalf("GetPresenters: %v", err)
 	}
 
+	if format == "" {
+		EncodeOutput(w, students, "json")
+	} else {
+		EncodeOutput(w, students, format)
+	}
 }
 
 // Handle getting info for a specific presenter (Survey form)
@@ -263,6 +243,7 @@ func (h *Handler) presenterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Send or update a response to a question
 func (h *Handler) sendResponseHandler(w http.ResponseWriter, r *http.Request) {
 	responderID := getIdentifierFromContext(r.Context())
 	presentationID, err := GetPresentationID(r)
@@ -290,6 +271,7 @@ func (h *Handler) sendResponseHandler(w http.ResponseWriter, r *http.Request) {
 
 	var responseSent bool
 
+	// Inserting a new response
 	if r.Method == "POST" {
 		respExists, err := h.ResponseExists(responderID, presentationID, response.Type, response.Number)
 
@@ -305,7 +287,7 @@ func (h *Handler) sendResponseHandler(w http.ResponseWriter, r *http.Request) {
 			responseSent, err = h.RespondToQuestion(responderID, presentationID, response.Type, response.Number, response.Answer)
 		}
 
-	} else if r.Method == "PUT" {
+	} else if r.Method == "PUT" { // Updating an existing response
 		responseSent, err = h.UpdateResponse(responderID, presentationID, response.Type, response.Number, response.Answer)
 	} else {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
@@ -324,6 +306,7 @@ func (h *Handler) sendResponseHandler(w http.ResponseWriter, r *http.Request) {
 	PrintResponsePayload(w, responderID, presentationID, response.Type, response.Number, response.Answer)
 }
 
+// Get the list of responses
 func (h *Handler) getResponsesHandler(w http.ResponseWriter, r *http.Request) {
 	responderID := getIdentifierFromContext(r.Context())
 	presentationID, err := GetPresentationID(r)
@@ -352,45 +335,40 @@ func (h *Handler) getResponsesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// Delete a response
 func (h *Handler) deleteResponseHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "DELETE" {
-		responderID := getIdentifierFromContext(r.Context())
-		presentationID, err := GetPresentationID(r)
+	responderID := getIdentifierFromContext(r.Context())
+	presentationID, err := GetPresentationID(r)
 
-		if presentationID == -1 {
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		}
+	if presentationID == -1 {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
 
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		}
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
 
-		// Decode the request into a DeleteRequest struct
-		delete := DeleteRequest{}
-		err = json.NewDecoder(r.Body).Decode(&delete)
+	// Decode the request into a DeleteRequest struct
+	delete := DeleteRequest{}
+	err = json.NewDecoder(r.Body).Decode(&delete)
 
-		deleted, err := h.DeleteResponse(responderID, presentationID, delete.Type, delete.Number)
+	deleted, err := h.DeleteResponse(responderID, presentationID, delete.Type, delete.Number)
 
-		// The response does not exist
-		if !deleted && err == nil {
-			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-			AddCustomResponse(w, "The response does not exist", 400, http.StatusText(http.StatusBadRequest))
-		} else if !deleted && err != nil { // There was an error other than the response not existing
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			AddCustomResponse(w, err.Error(), 500, http.StatusText(http.StatusInternalServerError))
-		} else {
-			http.Error(w, http.StatusText(http.StatusOK), http.StatusOK)
-			AddCustomResponse(w, "Response deleted", 200, "None")
-		}
+	// The response does not exist
+	if !deleted && err == nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		AddCustomResponse(w, "The response does not exist", 400, http.StatusText(http.StatusBadRequest))
+	} else if !deleted && err != nil { // There was an error other than the response not existing
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		AddCustomResponse(w, err.Error(), 500, http.StatusText(http.StatusInternalServerError))
 	} else {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		AddCustomResponse(w, "Method must be DELETE", 405, http.StatusText(405))
+		http.Error(w, http.StatusText(http.StatusOK), http.StatusOK)
+		AddCustomResponse(w, "Response deleted", 200, "None")
 	}
 }
 
 // GetPresentationID parses the presentation ID from the http request
 func GetPresentationID(r *http.Request) (int, error) {
-
 	vars := mux.Vars(r)
 	idFromRequest := vars["presentation_id"]
 
@@ -403,7 +381,7 @@ func GetPresentationID(r *http.Request) (int, error) {
 	return presentationID, nil
 }
 
-// AddCustomResponse will create a JSON response using the CustomeResponse struct
+// AddCustomResponse will create a JSON response using the CustomResponse struct
 func AddCustomResponse(w http.ResponseWriter, message string, code int, errorString string) {
 	response := CustomResponse{}
 
@@ -414,7 +392,7 @@ func AddCustomResponse(w http.ResponseWriter, message string, code int, errorStr
 	responseJSON, err := json.MarshalIndent(response, "", "    ")
 
 	if err != nil {
-		fmt.Errorf("AddResponse: %v", err)
+		log.Printf("AddResponse: %v", err)
 	}
 
 	fmt.Fprintf(w, "%s\n", responseJSON)
@@ -436,7 +414,7 @@ func PrintResponsePayload(w http.ResponseWriter, responderID string, presentatio
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
-	fmt.Fprintf(w, "Payload\n\n%s\n", payloadJSON)
+	fmt.Fprintf(w, "\nPayload\n\n%s\n", payloadJSON)
 }
 
 // EncodeOutput will print the output in the desired format to the response writer

@@ -24,16 +24,16 @@ type Student struct {
 
 // StudentInfo will be used for displaying info for each presenter
 type StudentInfo struct {
-	FirstName      string `db:"first_name"`
-	LastName       string `db:"last_name"`
-	PresentationID int    `db:"presentation_id"`
+	FirstName      string `db:"first_name" json:"firstName" xml:"firstName"`
+	LastName       string `db:"last_name" json:"lastName" xml:"lastName"`
+	PresentationID int    `db:"presentation_id" json:"presentationID" xml:"presentationID"`
 }
 
 // Question represents all data for the questions for each presenter
 type Question struct {
-	Type   string `db:"type"`
-	Number int    `db:"number"`
-	Prompt string `db:"prompt"`
+	Type   string `db:"type" json:"type" xml:"type"`
+	Number int    `db:"number" json:"number" xml:"number"`
+	Prompt string `db:"prompt" json:"prompt" xml:"prompt"`
 }
 
 // Response represents a response to a question by a certain student
@@ -56,24 +56,24 @@ type Presentation struct {
 
 // PresentationInfo will serve as a representation to the user
 type PresentationInfo struct {
-	Title     string `db:"title"`
-	FirstName string `db:"first_name"`
-	LastName  string `db:"last_name"`
-	Date      string `db:"date"`
-	Time      string `db:"time"`
+	Title     string `db:"title" json:"title" xml:"title"`
+	FirstName string `db:"first_name" json:"firstName" xml:"firstName"`
+	LastName  string `db:"last_name" json:"lastName" xml:"lastName"`
+	Date      string `db:"date" json:"date" xml:"date"`
+	Time      string `db:"time" json:"time" xml:"time"`
+}
+
+// ResponseDisplay used for displaying a response to a question
+type ResponseDisplay struct {
+	Type   string `json:"type" xml:"type"`
+	Number int    `json:"number" xml:"number"`
+	Prompt string `json:"prompt" xml:"prompt"`
+	Answer string `json:"answer" xml:"answer"`
 }
 
 // Database defines own type for the sqlx DB
 type Database struct {
 	*sqlx.DB
-}
-
-// ResponseDisplay used for displaying a response to a question
-type ResponseDisplay struct {
-	Type   string
-	Number int
-	Prompt string
-	Answer string
 }
 
 var connectionString = "dbname=assign1 user=postgres port=5432 sslmode=disable"
@@ -124,7 +124,8 @@ func (db *Database) Authenticate(identifier string) (bool, error) {
 func (db *Database) GetPresenters() ([]StudentInfo, error) {
 	q := `SELECT first_name, last_name, presentation_id
 			FROM student, presentation
-			WHERE student.identifier = presentation.identifier`
+			WHERE student.identifier = presentation.identifier
+			ORDER BY last_name, first_name`
 
 	students := []StudentInfo{}
 
@@ -309,22 +310,18 @@ func (db *Database) DeleteResponse(responderID string, presentationID int, quest
 	exists, err := db.ResponseExists(responderID, presentationID, questionType, number)
 
 	if err != nil {
-		log.Println("Error deleting response")
 		return false, err
 	}
 
 	if !exists {
-		log.Println("Response to be deleted does not exist")
 		return false, nil
 	}
 
 	_, err = db.Exec(q, responderID, presentationID, questionType, number)
 
 	if err != nil {
-		log.Println("Error deleting response")
 		return false, err
 	}
 
-	log.Println("Response deleted")
 	return true, nil
 }
