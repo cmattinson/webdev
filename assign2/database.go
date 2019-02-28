@@ -76,14 +76,14 @@ type Database struct {
 	*sqlx.DB
 }
 
-var connectionString = "dbname=assign1 user=postgres port=5432 sslmode=disable"
+var connectionString = "dbname=assign user=postgres port=5432 sslmode=disable"
 
 // OpenDatabase opens the database specified by connectionString and returns a handle to it
 func OpenDatabase() (*Database, error) {
 	db := Database{}
 	var err error
 
-	db.DB, err = sqlx.Connect("postgres", "user=postgres dbname=assign1 sslmode=disable")
+	db.DB, err = sqlx.Connect("postgres", "user=postgres dbname=assign sslmode=disable")
 
 	if err != nil {
 		return nil, fmt.Errorf("Open (%v): %v", connectionString, err)

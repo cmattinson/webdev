@@ -40,5 +40,3 @@ DROP TABLE question;
 DROP TABLE response;
 DROP TABLE presentation;
 DROP TABLE student;
-
-
