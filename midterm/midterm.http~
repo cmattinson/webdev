@@ -1,0 +1,4 @@
+# -*- restclient -*-
+
+# Get students
+GET http://localhost:8080/api/users
