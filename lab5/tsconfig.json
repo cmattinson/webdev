@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    /* Basic Options */
+    "target": "es5",
+    "module": "none",  
+    "strict": true,  
+    "outDir": "htdocs",
+    "removeComments": true
+  }
+}

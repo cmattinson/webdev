@@ -1,0 +1,13 @@
+/* CMPT 315 (Winter 2019)
+   Lab #05: HTML, TypeScript, and doT.js
+     
+   Author: Nicholas M. Boers
+*/
+
+section {
+    display: none;
+}
+
+section.active {
+    display: block;
+}

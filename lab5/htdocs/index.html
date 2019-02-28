@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!-- CMPT 315 (Winter 2019)
+     Lab #05: HTML, TypeScript, and doT.js
+     
+     Author: Nicholas M. Boers -->
+<html lang="en"> 
+  <head>
+    <meta charset="utf-8">
+    <title>CMPT 315: Lab #5</title>
+
+    <link rel="stylesheet" type="text/css" href="style.css">
+    
+    <script id="sample-template" type="text/x-dot-template">
+    <center>
+      {{=it.message}}
+    </center>
+    </script>
+
+    <script id="emoji-template" type="text/x-dot-template">
+      <table>
+        {{~it :value:index}}
+        <tr>
+          <td>{{=value.name}}</td><td><img src="{{=value.url}}"</td>
+        </tr>
+      </table>
+    </script>
+  </head>
+  
+  <body>
+    <header>
+      CMPT 315: Lab #5
+    </header>
+
+    <nav>
+      <ul id="nav-items">
+	<li id="nav-welcome"><a href="#">Welcome</a></li>
+ 	<li id="nav-emojis"><a href="#">Emojis!</a></li>
+      </ul>
+    </nav>
+
+    <section class="active" id="welcome">
+      <h1>Welcome!</h1>
+
+      <p id="welcome-message">
+	Replace the innerHTML of the tag with the result of rendering a template.
+      </p>
+    </section>
+
+    <section id="emojis">
+      <h1>Emojis!</h1>
+
+      <p id="emojis-table">
+	Using the emojiData object in script.ts, replace the content of this paragraph with a 2-column table.
+	The left column should contain the name attribute and the right column should contain an img tag.
+	The img tag's src attribute should refer to the location of the image.
+      </p>
+    </section>
+
+    <footer>
+      Last updated: Feb. 27, 2019
+    </footer>
+
+    <script src="doT.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,13 @@
+# -*- restclient -*-
+
+# Get students
+GET http://localhost:8080/api/users
+
+# Post a student
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{
+	"id": 2,
+	"Name": "James"
+}
