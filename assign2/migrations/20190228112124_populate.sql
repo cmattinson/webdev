@@ -1,5 +1,5 @@
 -- +goose Up
-insert into student (identifier, first_name, last_name) values ('jqYPeRSj', 'Chris', 'Mattinson');
+insert into student (identifier, first_name, last_name) values ('test', 'Chris', 'Mattinson');
 insert into student (identifier, first_name, last_name) values ('cmTYdFRm', 'Nick', 'Boers');
 insert into student (identifier, first_name, last_name) values ('oyLCuRPs', 'Lottie', 'Krale');
 insert into student (identifier, first_name, last_name) values ('pvDVrBSe', 'Hannie', 'Hurran');
@@ -51,7 +51,7 @@ insert into presentation (presentation_id, title, date, time, identifier)
 values (1, 'An Introduction to Go Programming', '2019-01-31', '09:30', 'cmTYdFRm');
 
 insert into presentation (presentation_id, title, date, time, identifier)
-values (2, 'Restful API Design', '2019-02-08', '11:30', 'jqYPeRSj');
+values (2, 'Restful API Design', '2019-02-08', '11:30', 'test');
 
 insert into presentation (presentation_id, title, date, time, identifier)
 values (3, 'Back End Development', '2019-02-09', '09:30', 'oyLCuRPs');

@@ -1,13 +1,36 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
+        <meta charset="utf-8">
         <title>Presentation Feedback System</title>
+        <link rel="stylesheet" type="text/css" href="style.css">
     </head>
     <body>
-        <h1>Presentation Feedback System</h1>
-        <h2>Enter your identifier</h2> 
-        <input id="idBox" type="text">
-        <button id="submitButton" type="button" onclick="print()">Submit</button>
-        <script src="../src/app.js"></script>
+        <section class="active" id="auth-section">
+                <h2>Enter your identifier</h2> 
+                <input id="id-box" type="text">
+                <button id="submit-button" type="button">Submit</button>
+            </section>
+        <section id="navigation">
+                <h2>Presentation Feedback System</h2>
+                <nav id="nav-bar">
+                        <ul id="nav-items">
+                            <li id="nav-presenters"><a href="#">Presenters</a></li>
+                            <li id="nav-responses"><a href="#">Responses</a></li>
+                        </ul>
+                    </nav>
+        </section>
+        <section id="presenters-section">
+            <h2>Presenters</h2>
+            <p id="presenters-list">
+            </p>
+        </section>
+        <section id="responses-section">
+            <h2>Responses</h2>
+            <p id="responses-list">
+            </p>
+        </section>
+        <script src="app.js"></script>
+        <script src="doT.js"></script>
     </body>
 </html>
