@@ -39,7 +39,6 @@ var clickSubmit = function (evt) {
             split.splice(0, 1);
             var message = split.join("\n");
             var json = JSON.parse(message);
-            console.log(json);
             var template = document.querySelector("#error-template");
             if (!template.textContent) {
                 console.log("#error-template is missing");

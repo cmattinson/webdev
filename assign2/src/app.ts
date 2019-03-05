@@ -9,6 +9,7 @@ let attachListeners = (): void => {
     navResponses.onclick = clickResponses;
 }
 
+// Event handler for the clicking of the Submit button on the authentication page
 let clickSubmit = (evt: MouseEvent): void => {
     let input = <HTMLInputElement>document.querySelector("#id-box");
 
@@ -45,14 +46,13 @@ let clickSubmit = (evt: MouseEvent): void => {
         if (this.readyState === 4 && this.status === 401) {
             let target = <HTMLElement>document.querySelector("#error");
 
+            // Remove the top header in the response text
             let response = request.responseText;
             let split = response.split("\n");
-            
             split.splice(0,1);
             let message = split.join("\n");
-            let json = JSON.parse(message);
 
-            console.log(json);
+            let json = JSON.parse(message);
 
             let template = <HTMLElement>document.querySelector("#error-template");
 
