@@ -2,42 +2,81 @@ let attachListeners = (): void => {
     let submit = <HTMLElement>document.querySelector("#submit-button");
     submit.onclick = clickSubmit;
 
-    let navPresenters = <HTMLElement>document.querySelector("#nav-presenters")
+    let navPresenters = <HTMLElement>document.querySelector("#nav-presenters");
     navPresenters.onclick = clickPresenters;
 
-    let navResponses = <HTMLElement>document.querySelector("#nav-responses")
+    let navResponses = <HTMLElement>document.querySelector("#nav-responses");
     navResponses.onclick = clickResponses;
 }
 
-let clickSubmit = (evt: MouseEvent): boolean => {
+let clickSubmit = (evt: MouseEvent): void => {
     let input = <HTMLInputElement>document.querySelector("#id-box");
 
     if (input == null) {
-        return false;
+        return;
     }
 
     let request = new XMLHttpRequest();
+    // https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/onreadystatechange
     request.onreadystatechange = function() {
         if (this.readyState === 4 && this.status === 200) {
-            let body = <HTMLElement>document.querySelector("#presenters-list");
-            body.innerHTML = request.responseText;
+            let target = <HTMLElement>document.querySelector("#presenters-list");
+            let json = JSON.parse(request.responseText);
+            console.log(json);
+            let template = <HTMLElement>document.querySelector("#presenters-template");
+
+            if (!template.textContent) {
+                console.log("Template is missing");
+                return;
+            }
+
+            let renderFunc = doT.template(template.textContent);
+            target.innerHTML = renderFunc(json);
+
+            let sectionAuth = <HTMLElement>document.querySelector("#auth-section");
+            let sectionPresenters = <HTMLElement>document.querySelector("#presenters-section");
+            let sectionNav = <HTMLElement>document.querySelector("#navigation")
+            sectionAuth.className = "";
+            sectionNav.className = "active";
+            sectionPresenters.className = "active";
+
+        }
+
+        if (this.readyState === 4 && this.status === 401) {
+            let target = <HTMLElement>document.querySelector("#error");
+
+            let response = request.responseText;
+            let split = response.split("\n");
+            
+            split.splice(0,1);
+            let message = split.join("\n");
+            let json = JSON.parse(message);
+
+            console.log(json);
+
+            let template = <HTMLElement>document.querySelector("#error-template");
+
+            if (!template.textContent) {
+                console.log("#error-template is missing");
+                return;
+            }
+
+            let renderFunc = doT.template(template.textContent);
+            target.innerHTML = renderFunc(json);
+
+            let sectionError = <HTMLElement>document.querySelector("#error-page");
+            let sectionAuth = <HTMLElement>document.querySelector("#auth-section");
+
+            sectionError.className = "active";
+            sectionAuth.className = "";
         }
     }
     request.open("GET", "http://localhost:8080/api/v1/presenters");
     request.setRequestHeader("Authorization", "Bearer " + input.value);
     request.send();
 
-
-
-    let sectionAuth = <HTMLElement>document.querySelector("#auth-section");
-    let sectionPresenters = <HTMLElement>document.querySelector("#presenters-section");
-    let sectionNav = <HTMLElement>document.querySelector("#navigation")
-    sectionAuth.className = "";
-    sectionNav.className = "active";
-    sectionPresenters.className = "active";
-
     console.log("Clicked submit");
-    return false;
+    return;
 }
 
 let clickPresenters = (evt: MouseEvent): void => {
@@ -59,6 +98,10 @@ let clickResponses = (evt: MouseEvent): void => {
     sectionPresenters.className = "";
 
     console.log("Clicked responses");
+}
+
+let clickHello = (evt: MouseEvent): void => {
+    console.log("Clicked");
 }
 
 window.onload = (): void => {
