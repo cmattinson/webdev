@@ -29,30 +29,29 @@
                     {{? value.type === "M/C"}}
                 <div>
                     <input type="radio" id="stronglyAgree"
-                        name="choice" value="Strongly Agree">
+                        name="choice{{=index}}" value="Strongly Agree">
                     <label for="stronglyAgree">Strongly Agree</label>
 
                     <input type="radio" id="Agree"
-                    name="choice" value="Agree">
+                    name="choice{{=index}}" value="Agree">
                     <label for="Agree">Agree</label>
 
                     <input type="radio" id="neutral"
-                    name="choice" value="Neutral">
+                    name="choice{{=index}}" value="Neutral">
                     <label for="neutral">Neutral</label>
 
                     <input type="radio" id="disagree"
-                    name="choice" value="Disagree">
+                    name="choice{{=index}}" value="Disagree">
                     <label for="disagree">Disagree</label>
 
                     <input type="radio" id="stronglyDisagree"
-                    name="choice" value="Strongly Disagree">
+                    name="choice{{=index}}" value="Strongly Disagree">
                     <label for="stronglyDisagree">Strongly Disagree</label>
                 </div>
                 {{??}}
                 <div>
                     <textarea rows="5" columns="100"></textarea>
                 </div>
-
                 {{?}}
                 </td></tr>
                 {{~}}
