@@ -74,13 +74,13 @@ func main() {
 
 	router := mux.NewRouter()
 	// Default case, will be encoded in json
-	router.HandleFunc("/api/v1/presenters", corsMiddleware(handlers.authentication(logger(handlers.presentersListHandler)))).
+	router.HandleFunc("/api/v1/presenters", handlers.authentication(logger(handlers.presentersListHandler))).
 		Methods("GET", "OPTIONS")
 	// Format is specified
 	router.HandleFunc("/api/v1/presenters.{format:(?:json|xml)}", handlers.authentication(logger(handlers.presentersListHandler))).
 		Methods("GET", "OPTIONS")
 
-	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}", corsMiddleware(handlers.authentication(logger(handlers.presenterHandler)))).
+	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.presenterHandler))).
 		Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}.{format:(?:json|xml)}", handlers.authentication(logger(handlers.presenterHandler))).
 		Methods("GET", "OPTIONS")
@@ -88,7 +88,7 @@ func main() {
 	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.sendResponseHandler))).
 		Methods("POST", "PUT", "OPTIONS")
 
-	router.HandleFunc("/api/v1/questions", corsMiddleware(handlers.authentication(logger(handlers.questionsHandler)))).Methods("GET", "OPTIONS")
+	router.HandleFunc("/api/v1/questions", handlers.authentication(logger(handlers.questionsHandler))).Methods("GET", "OPTIONS")
 
 	router.HandleFunc("/api/v1/responses/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.getResponsesHandler))).
 		Methods("GET", "OPTIONS")
@@ -97,6 +97,8 @@ func main() {
 
 	router.HandleFunc("/api/v1/responses/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.deleteResponseHandler))).
 		Methods("DELETE", "OPTIONS")
+
+	router.PathPrefix("/").Handler(http.FileServer(http.Dir("dist")))
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
@@ -128,21 +130,6 @@ func contextWithIdentifier(ctx context.Context, r *http.Request) context.Context
 // https://www.joeshaw.org/revisiting-context-and-http-handler-for-go-17/
 func getIdentifierFromContext(ctx context.Context) string {
 	return ctx.Value(apiID).(string)
-}
-
-func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		header := w.Header()
-		header.Add("Access-Control-Allow-Origin", "*")
-		header.Add("Access-Control-Allow-Methods", "DELETE, POST, GET, OPTIONS, PUT")
-		header.Add("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
-
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-		}
-
-		next.ServeHTTP(w, r)
-	})
 }
 
 // authentication is middleware to check that the responder is authorized to the API

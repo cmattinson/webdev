@@ -8,19 +8,55 @@
             <table id="presenters-table" class="table">
                 {{~it :value:index}}
                 <tr>
-                    <td><li><a href="#{{=value.presentationID}}">{{=value.firstName}} {{=value.lastName}}</a></li></td>
+                    <td><a href="#{{=value.presentationID}}">{{=value.firstName}} {{=value.lastName}}</a></td>
                 </tr>
                 {{~}}
             <table>
         </script>
         <script id="presenter-info-template" type="text/x-dot-template">
             <table id="presenter" class="table">
-                    {{~it :value:index}}
-                    <tr>
-                        <td>{{=value.title}}</td>
-                    </tr>
-                    {{~}}
-                <table>
+                <tr><td><a>Title - {{=it.title}}</a></td></tr>
+                <tr><td><a>Presenter - {{=it.firstName}} {{=it.lastName}}</a></td></tr>
+                <tr><td><a>Date - {{=it.date}}</a></td></tr>
+                <tr><td><a>Time - {{=it.time}}</a></td></tr>
+            <table>
+        </script>
+        <script id="question-template" type=text/x-dot-template">
+            <table id="questions-table" class="table">
+                {{~it :value:index}}
+                <tr><td><a>{{=value.type}} {{=value.number}} - {{=value.prompt}}</a></td></tr>
+                <tr><td>
+                    {{? value.type === "M/C"}}
+                <div>
+                    <input type="radio" id="stronglyAgree"
+                        name="choice" value="Strongly Agree">
+                    <label for="stronglyAgree">Strongly Agree</label>
+
+                    <input type="radio" id="Agree"
+                    name="choice" value="Agree">
+                    <label for="Agree">Agree</label>
+
+                    <input type="radio" id="neutral"
+                    name="choice" value="Neutral">
+                    <label for="neutral">Neutral</label>
+
+                    <input type="radio" id="disagree"
+                    name="choice" value="Disagree">
+                    <label for="disagree">Disagree</label>
+
+                    <input type="radio" id="stronglyDisagree"
+                    name="choice" value="Strongly Disagree">
+                    <label for="stronglyDisagree">Strongly Disagree</label>
+                </div>
+                {{??}}
+                <div>
+                    <textarea rows="5" columns="100"></textarea>
+                </div>
+
+                {{?}}
+                </td></tr>
+                {{~}}
+            <table>
         </script>
         <script id="error-template" type="text/x-dot-template">
             <div> Error {{=it.statusCode}}</div>      
@@ -60,6 +96,11 @@
         <section id="presenter-info-section">
             <h2>Presentation</h2>
             <p id="presenter-info">
+
+            </p>
+        </section>
+        <section id="questions-section">
+            <p id="questions">
 
             </p>
         </section>

@@ -43,6 +43,7 @@ let clickPresenter = (evt: MouseEvent): void => {
 
     if (fragment != null) {
         loadPresentationInfo(identifier, fragment.charAt(1));
+        loadQuestions(identifier);
     }
 }
 
@@ -95,6 +96,7 @@ let loadPresentationInfo = (identifier: string, fragment: string): void => {
     request.onload = (evt: Event): void => {
         let target = <HTMLElement>document.querySelector("#presenter-info");
         let json = JSON.parse(request.responseText);
+        console.log(json);
 
         let template = <HTMLElement>document.querySelector("#presenter-info-template");
 
@@ -115,6 +117,35 @@ let loadPresentationInfo = (identifier: string, fragment: string): void => {
     let uri = "http://localhost:8080/api/v1/presenters/" + presentationID;
 
     request.open("GET", uri);
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.send();
+
+    return;
+}
+
+let loadQuestions = (identifier: string): void => {
+    let request = new XMLHttpRequest();
+    
+    request.onload = (evt: Event): void => {
+        let target = <HTMLElement>document.querySelector("#questions");
+        let json = JSON.parse(request.responseText);
+        console.log(json);
+
+        let template = <HTMLElement>document.querySelector("#question-template");
+
+        if (!template.textContent) {
+            console.log("#question-template is missing");
+            return;
+        }
+
+        let renderFunc = doT.template(template.textContent);
+        target.innerHTML = renderFunc(json);
+
+        let sectionQuestions = <HTMLElement>document.querySelector("#questions-section");
+        sectionQuestions.className = "active";
+    }
+
+    request.open("GET", "http://localhost:8080/api/v1/questions");
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.send();
 
