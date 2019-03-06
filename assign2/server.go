@@ -80,13 +80,15 @@ func main() {
 	router.HandleFunc("/api/v1/presenters.{format:(?:json|xml)}", handlers.authentication(logger(handlers.presentersListHandler))).
 		Methods("GET", "OPTIONS")
 
-	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.presenterHandler))).
+	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}", corsMiddleware(handlers.authentication(logger(handlers.presenterHandler)))).
 		Methods("GET", "OPTIONS")
 	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}.{format:(?:json|xml)}", handlers.authentication(logger(handlers.presenterHandler))).
 		Methods("GET", "OPTIONS")
 
 	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.sendResponseHandler))).
 		Methods("POST", "PUT", "OPTIONS")
+
+	router.HandleFunc("/api/v1/questions", corsMiddleware(handlers.authentication(logger(handlers.questionsHandler)))).Methods("GET", "OPTIONS")
 
 	router.HandleFunc("/api/v1/responses/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.getResponsesHandler))).
 		Methods("GET", "OPTIONS")
@@ -169,7 +171,6 @@ func (h *Handler) authentication(next http.HandlerFunc) http.HandlerFunc {
 		}
 
 		if !isStudent {
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			message := identifier + " is not a recognized identifier"
 			AddCustomResponse(w, message, 401, http.StatusText(http.StatusUnauthorized))
 			return
@@ -240,6 +241,17 @@ func (h *Handler) presenterHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 	}
 
+	vars := mux.Vars(r)
+	format := vars["format"]
+
+	if format == "" {
+		EncodeOutput(w, presentation, "json")
+	} else {
+		EncodeOutput(w, presentation, format)
+	}
+}
+
+func (h *Handler) questionsHandler(w http.ResponseWriter, r *http.Request) {
 	questions, err := h.GetQuestions()
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -250,10 +262,8 @@ func (h *Handler) presenterHandler(w http.ResponseWriter, r *http.Request) {
 	format := vars["format"]
 
 	if format == "" {
-		EncodeOutput(w, presentation, "json")
 		EncodeOutput(w, questions, "json")
 	} else {
-		EncodeOutput(w, presentation, format)
 		EncodeOutput(w, questions, format)
 	}
 }
