@@ -1,5 +1,13 @@
 let identifier: string;
 
+interface Response {
+    responderID: string;
+    presentationID: number;
+    questionType: string;
+    number: number;
+    answer: string;
+}
+
 let attachListeners = (): void => {
     let submit = <HTMLElement>document.querySelector("#submit-button");
     submit.onclick = clickSubmit;
@@ -12,6 +20,9 @@ let attachListeners = (): void => {
 
     let presentersList = <HTMLElement>document.querySelector("#presenters");
     presentersList.onclick = clickPresenter;
+
+    let submitResponses = <HTMLElement>document.querySelector("#submit-responses");
+    submitResponses.onclick = clickSubmitResponses;
 }
 
 // Event handler for the clicking of the Submit button on the authentication page
@@ -30,9 +41,15 @@ let clickPresenters = (evt: MouseEvent): void => {
     let sectionPresenters = <HTMLElement>document.querySelector("#presenters-section");
     let sectionAuth = <HTMLElement>document.querySelector("#auth-section");
     let sectionResponses = <HTMLElement>document.querySelector("#responses-section");
+
+    let buttonPresenters = <HTMLElement>document.querySelector("#nav-presenters");
+    let buttonResponses = <HTMLElement>document.querySelector("#nav-responses");
     
     sectionPresenters.className = "active";
     sectionResponses.className = "";
+
+    buttonPresenters.className = "active";
+    buttonResponses.className = "";
 
     console.log("Clicked presenters");
 }
@@ -51,8 +68,18 @@ let clickResponses = (evt: MouseEvent): void => {
     let sectionResponses = <HTMLElement>document.querySelector("#responses-section");
     let sectionPresenters = <HTMLElement>document.querySelector("#presenters-section");
 
+    let buttonPresenters = <HTMLElement>document.querySelector("#nav-presenters");
+    let buttonResponses = <HTMLElement>document.querySelector("#nav-responses");
+
     sectionResponses.className = "active";
     sectionPresenters.className = "";
+
+    buttonPresenters.className = "";
+    buttonResponses.className = "active";
+}
+
+let clickSubmitResponses = (evt: MouseEvent): void => {
+    sendResponse("test", 1, "M/C", 4, "Strongly Agree");
 }
 
 
@@ -150,6 +177,23 @@ let loadQuestions = (identifier: string): void => {
     request.send();
 
     return;
+}
+
+let sendResponse = (identifier: string, presenterID: number, questionType: string, questionNumber: number, answer: string): void => {
+    let request = new XMLHttpRequest();
+    request.open("POST", "http://localhost:8080/api/v1/presenters/" + presenterID);
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.setRequestHeader("Content-Type", "application/json");
+
+    let questionResponse = new Response();
+    questionResponse.responderID = identifier;
+    questionResponse.presentationID = presenterID;
+    questionResponse.questionType = questionType;
+    questionResponse.number = questionNumber;
+    questionResponse.answer = answer;
+
+    let json = JSON.stringify(questionResponse);
+    request.send(json)
 }
 
 window.onload = (): void => {

@@ -29,7 +29,7 @@ type Handler struct {
 
 // ResponseRequest stores an incoming question response request
 type ResponseRequest struct {
-	Type   string `json:"type"`
+	Type   string `json:"questionType"`
 	Number int    `json:"number"`
 	Answer string `json:"answer"`
 }

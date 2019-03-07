@@ -9,6 +9,8 @@ let attachListeners = () => {
     navResponses.onclick = clickResponses;
     let presentersList = document.querySelector("#presenters");
     presentersList.onclick = clickPresenter;
+    let submitResponses = document.querySelector("#submit-responses");
+    submitResponses.onclick = clickSubmitResponses;
 };
 let clickSubmit = (evt) => {
     let input = document.querySelector("#id-box");
@@ -22,8 +24,12 @@ let clickPresenters = (evt) => {
     let sectionPresenters = document.querySelector("#presenters-section");
     let sectionAuth = document.querySelector("#auth-section");
     let sectionResponses = document.querySelector("#responses-section");
+    let buttonPresenters = document.querySelector("#nav-presenters");
+    let buttonResponses = document.querySelector("#nav-responses");
     sectionPresenters.className = "active";
     sectionResponses.className = "";
+    buttonPresenters.className = "active";
+    buttonResponses.className = "";
     console.log("Clicked presenters");
 };
 let clickPresenter = (evt) => {
@@ -37,8 +43,15 @@ let clickPresenter = (evt) => {
 let clickResponses = (evt) => {
     let sectionResponses = document.querySelector("#responses-section");
     let sectionPresenters = document.querySelector("#presenters-section");
+    let buttonPresenters = document.querySelector("#nav-presenters");
+    let buttonResponses = document.querySelector("#nav-responses");
     sectionResponses.className = "active";
     sectionPresenters.className = "";
+    buttonPresenters.className = "";
+    buttonResponses.className = "active";
+};
+let clickSubmitResponses = (evt) => {
+    sendResponse("test", 1, "M/C", 4, "Strongly Agree");
 };
 let loadPresentersList = (identifier) => {
     let request = new XMLHttpRequest();
@@ -110,6 +123,20 @@ let loadQuestions = (identifier) => {
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.send();
     return;
+};
+let sendResponse = (identifier, presenterID, questionType, questionNumber, answer) => {
+    let request = new XMLHttpRequest();
+    request.open("POST", "http://localhost:8080/api/v1/presenters/" + presenterID);
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.setRequestHeader("Content-Type", "application/json");
+    let questionResponse = new Response();
+    questionResponse.responderID = identifier;
+    questionResponse.presentationID = presenterID;
+    questionResponse.questionType = questionType;
+    questionResponse.number = questionNumber;
+    questionResponse.answer = answer;
+    let json = JSON.stringify(questionResponse);
+    request.send(json);
 };
 window.onload = () => {
     attachListeners();

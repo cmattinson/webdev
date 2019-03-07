@@ -5,21 +5,22 @@
         <title>Presentation Feedback System</title>
         <link rel="stylesheet" type="text/css" href="style.css">
         <script id="presenters-template" type="text/x-dot-template">
-            <table id="presenters-table" class="table">
+            <div class="presenters-list">
                 {{~it :value:index}}
-                <tr>
-                    <td><a href="#{{=value.presentationID}}">{{=value.firstName}} {{=value.lastName}}</a></td>
-                </tr>
+                    <ul>
+                        <a href="#{{=value.presentationID}}">{{=value.firstName}} {{=value.lastName}}</a>
+                    </ul>
                 {{~}}
-            <table>
+            </div>
         </script>
         <script id="presenter-info-template" type="text/x-dot-template">
-            <table id="presenter" class="table">
-                <tr><td><a>Title - {{=it.title}}</a></td></tr>
-                <tr><td><a>Presenter - {{=it.firstName}} {{=it.lastName}}</a></td></tr>
-                <tr><td><a>Date - {{=it.date}}</a></td></tr>
-                <tr><td><a>Time - {{=it.time}}</a></td></tr>
-            <table>
+            <div class="presenter-info">
+                <ul>
+                    <li><a>Title - {{=it.title}}</a></li>
+                    <li><a>Presenter - {{=it.firstName}} {{=it.lastName}}</a></li>
+                    <li><a>Date - {{=it.date}}</a></li>
+                    <li><a>Time - {{=it.time}}</a></li>
+                </ul>
         </script>
         <script id="question-template" type=text/x-dot-template">
             <table id="questions-table" class="table">
@@ -27,7 +28,7 @@
                 <tr><td><a>{{=value.type}} {{=value.number}} - {{=value.prompt}}</a></td></tr>
                 <tr><td>
                     {{? value.type === "M/C"}}
-                <div>
+                <div id="radio-buttons">
                     <input type="radio" id="stronglyAgree"
                         name="choice{{=index}}" value="Strongly Agree">
                     <label for="stronglyAgree">Strongly Agree</label>
@@ -66,7 +67,7 @@
             <h2>Enter your identifier</h2> 
             <input id="id-box" type="text">
             <button id="submit-button" type="button">Submit</button>
-            </section>
+        </section>
         <section id="error-page">
             <h2>Error</h2>
             <p id="error">
@@ -74,13 +75,10 @@
             </p>
         </section>
         <section id="navigation">
-                <h2>Presentation Feedback System</h2>
-                <nav id="nav-bar">
-                        <ul id="nav-items">
-                            <li id="nav-presenters"><a href="#">Presenters</a></li>
-                            <li id="nav-responses"><a href="#">Responses</a></li>
-                        </ul>
-                </nav>
+            <div class="topnav">
+                <a id="nav-presenters" class="active" href="#presenters">Presenters</a>
+                <a id="nav-responses" href="#responses">Responses</a>
+            </div>
         </section>
         <section id="presenters-section">
             <h2>Presenters</h2>
@@ -102,6 +100,7 @@
             <p id="questions">
 
             </p>
+            <button id="submit-responses" type="button">Submit</button>
         </section>
         <script src="doT.js"></script>
         <script src="app.js"></script>
