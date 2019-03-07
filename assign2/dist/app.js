@@ -136,6 +136,27 @@ let loadQuestions = (identifier) => {
     request.send();
     return;
 };
+let getResponse = (questionType, questionNumber) => {
+    let request = new XMLHttpRequest();
+    let questionID;
+    if (questionType === "M/C") {
+        questionID = "mc" + questionNumber;
+    }
+    else if (questionType === "Open") {
+        questionID = "open" + questionNumber;
+    }
+    else {
+        return;
+    }
+    request.onload = (evt) => {
+        let json = JSON.parse(request.responseText);
+        console.log(json);
+    };
+    let uri = "http://localhost:8080/api/v1/presenters/" + presentationID + "/" + questionID;
+    request.open("GET", uri);
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.send();
+};
 let sendResponse = (json) => {
     let request = new XMLHttpRequest();
     request.open("POST", "http://localhost:8080/api/v1/presenters/" + presentationID);
