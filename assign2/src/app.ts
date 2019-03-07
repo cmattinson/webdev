@@ -1,4 +1,5 @@
 let identifier: string;
+let presentationID: number;
 
 interface Response {
     responderID: string;
@@ -50,16 +51,16 @@ let clickPresenters = (evt: MouseEvent): void => {
 
     buttonPresenters.className = "active";
     buttonResponses.className = "";
-
-    console.log("Clicked presenters");
 }
 
 let clickPresenter = (evt: MouseEvent): void => {
     let target = <HTMLElement>evt.target;
     let fragment = <string>target.getAttribute("href");
+    let presID = fragment.charAt(1);
 
     if (fragment != null) {
-        loadPresentationInfo(identifier, fragment.charAt(1));
+        presentationID = parseInt(presID, 10);
+        loadPresentationInfo(identifier, presID);
         loadQuestions(identifier);
     }
 }
@@ -79,9 +80,24 @@ let clickResponses = (evt: MouseEvent): void => {
 }
 
 let clickSubmitResponses = (evt: MouseEvent): void => {
-    sendResponse("test", 1, "M/C", 4, "Strongly Agree");
-}
+    // Loop through all 10 multiple choice questions
+    for (let i = 0; i < 10; i++) {
+        let choiceName = "multChoice" + i;
+        let selection = <HTMLInputElement>document.querySelector("input[name=" + choiceName + "]:checked")
 
+        if (selection != null) {
+            let questionResponse = new Response();
+            questionResponse.responderID = identifier;
+            questionResponse.presentationID = presentationID;
+            questionResponse.questionType = "M/C";
+            questionResponse.number = i + 1; // Convert zero based indexing of template to actual question number
+            questionResponse.answer = selection.value;
+
+            let json = JSON.stringify(questionResponse);
+            sendResponse(json);
+        }
+    }
+}
 
 let loadPresentersList = (identifier: string): void => {
     let request = new XMLHttpRequest();
@@ -89,11 +105,10 @@ let loadPresentersList = (identifier: string): void => {
     request.onload = (evt: Event): void => {
         let target = <HTMLElement>document.querySelector("#presenters");
         let json = JSON.parse(request.responseText);
-        console.log(json);
         let template = <HTMLElement>document.querySelector("#presenters-template");
 
         if (!template.textContent) {
-            console.log("Template is missing");
+            console.log("#presenters-template is missing");
             return;
         }
 
@@ -119,16 +134,14 @@ let loadPresentationInfo = (identifier: string, fragment: string): void => {
     let request = new XMLHttpRequest();
     let presentationID = parseInt(fragment, 10);
 
-
     request.onload = (evt: Event): void => {
         let target = <HTMLElement>document.querySelector("#presenter-info");
         let json = JSON.parse(request.responseText);
-        console.log(json);
 
         let template = <HTMLElement>document.querySelector("#presenter-info-template");
 
         if (!template.textContent) {
-            console.log("Template is missing");
+            console.log("#presenters-info-template is missing");
             return;
         }
 
@@ -156,7 +169,6 @@ let loadQuestions = (identifier: string): void => {
     request.onload = (evt: Event): void => {
         let target = <HTMLElement>document.querySelector("#questions");
         let json = JSON.parse(request.responseText);
-        console.log(json);
 
         let template = <HTMLElement>document.querySelector("#question-template");
 
@@ -179,20 +191,11 @@ let loadQuestions = (identifier: string): void => {
     return;
 }
 
-let sendResponse = (identifier: string, presenterID: number, questionType: string, questionNumber: number, answer: string): void => {
+let sendResponse = (json: string): void => {
     let request = new XMLHttpRequest();
-    request.open("POST", "http://localhost:8080/api/v1/presenters/" + presenterID);
+    request.open("POST", "http://localhost:8080/api/v1/presenters/" + presentationID);
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.setRequestHeader("Content-Type", "application/json");
-
-    let questionResponse = new Response();
-    questionResponse.responderID = identifier;
-    questionResponse.presentationID = presenterID;
-    questionResponse.questionType = questionType;
-    questionResponse.number = questionNumber;
-    questionResponse.answer = answer;
-
-    let json = JSON.stringify(questionResponse);
     request.send(json)
 }
 

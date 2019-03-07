@@ -97,6 +97,10 @@ Content-Type: application/json
 	"answer": "Presentation was interesting and informative"
 }
 
+# Get a single response
+GET http://localhost:8080/api/v1/responses/1/mc1
+Authorization: Bearer test
+
 # Get the list of responses to the presenter (default JSON)
 GET http://localhost:8080/api/v1/responses/1
 Authorization: Bearer jqYPeRSj

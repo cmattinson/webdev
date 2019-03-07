@@ -25,28 +25,28 @@
         <script id="question-template" type=text/x-dot-template">
             <table id="questions-table" class="table">
                 {{~it :value:index}}
-                <tr><td><a>{{=value.type}} {{=value.number}} - {{=value.prompt}}</a></td></tr>
+                <tr><td><a>{{=value.prompt}}</a></td></tr>
                 <tr><td>
                     {{? value.type === "M/C"}}
                 <div id="radio-buttons">
                     <input type="radio" id="stronglyAgree"
-                        name="choice{{=index}}" value="Strongly Agree">
+                        name="multChoice{{=index}}" value="Strongly Agree">
                     <label for="stronglyAgree">Strongly Agree</label>
 
                     <input type="radio" id="Agree"
-                    name="choice{{=index}}" value="Agree">
+                    name="multChoice{{=index}}" value="Agree">
                     <label for="Agree">Agree</label>
 
                     <input type="radio" id="neutral"
-                    name="choice{{=index}}" value="Neutral">
+                    name="multChoice{{=index}}" value="Neutral">
                     <label for="neutral">Neutral</label>
 
                     <input type="radio" id="disagree"
-                    name="choice{{=index}}" value="Disagree">
+                    name="multChoice{{=index}}" value="Disagree">
                     <label for="disagree">Disagree</label>
 
                     <input type="radio" id="stronglyDisagree"
-                    name="choice{{=index}}" value="Strongly Disagree">
+                    name="multChoice{{=index}}" value="Strongly Disagree">
                     <label for="stronglyDisagree">Strongly Disagree</label>
                 </div>
                 {{??}}
@@ -66,7 +66,7 @@
         <section class="active" id="auth-section">
             <h2>Enter your identifier</h2> 
             <input id="id-box" type="text">
-            <button id="submit-button" type="button">Save and Close</button>
+            <button id="submit-button" type="button">Submit</button>
         </section>
         <section id="error-page">
             <h2>Error</h2>
@@ -98,9 +98,8 @@
         </section>
         <section id="questions-section">
             <p id="questions">
-
             </p>
-            <button id="submit-responses" type="button">Submit</button>
+            <button id="submit-responses" type="button">Save and Close</button>
         </section>
         <script src="doT.js"></script>
         <script src="app.js"></script>

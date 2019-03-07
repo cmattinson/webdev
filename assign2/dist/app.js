@@ -1,5 +1,6 @@
 "use strict";
 let identifier;
+let presentationID;
 let attachListeners = () => {
     let submit = document.querySelector("#submit-button");
     submit.onclick = clickSubmit;
@@ -30,13 +31,14 @@ let clickPresenters = (evt) => {
     sectionResponses.className = "";
     buttonPresenters.className = "active";
     buttonResponses.className = "";
-    console.log("Clicked presenters");
 };
 let clickPresenter = (evt) => {
     let target = evt.target;
     let fragment = target.getAttribute("href");
+    let presID = fragment.charAt(1);
     if (fragment != null) {
-        loadPresentationInfo(identifier, fragment.charAt(1));
+        presentationID = parseInt(presID, 10);
+        loadPresentationInfo(identifier, presID);
         loadQuestions(identifier);
     }
 };
@@ -51,17 +53,29 @@ let clickResponses = (evt) => {
     buttonResponses.className = "active";
 };
 let clickSubmitResponses = (evt) => {
-    sendResponse("test", 1, "M/C", 4, "Strongly Agree");
+    for (let i = 0; i < 10; i++) {
+        let choiceName = "multChoice" + i;
+        let selection = document.querySelector("input[name=" + choiceName + "]:checked");
+        if (selection != null) {
+            let questionResponse = new Response();
+            questionResponse.responderID = identifier;
+            questionResponse.presentationID = presentationID;
+            questionResponse.questionType = "M/C";
+            questionResponse.number = i + 1;
+            questionResponse.answer = selection.value;
+            let json = JSON.stringify(questionResponse);
+            sendResponse(json);
+        }
+    }
 };
 let loadPresentersList = (identifier) => {
     let request = new XMLHttpRequest();
     request.onload = (evt) => {
         let target = document.querySelector("#presenters");
         let json = JSON.parse(request.responseText);
-        console.log(json);
         let template = document.querySelector("#presenters-template");
         if (!template.textContent) {
-            console.log("Template is missing");
+            console.log("#presenters-template is missing");
             return;
         }
         let renderFunc = doT.template(template.textContent);
@@ -84,10 +98,9 @@ let loadPresentationInfo = (identifier, fragment) => {
     request.onload = (evt) => {
         let target = document.querySelector("#presenter-info");
         let json = JSON.parse(request.responseText);
-        console.log(json);
         let template = document.querySelector("#presenter-info-template");
         if (!template.textContent) {
-            console.log("Template is missing");
+            console.log("#presenters-info-template is missing");
             return;
         }
         let renderFunc = doT.template(template.textContent);
@@ -108,7 +121,6 @@ let loadQuestions = (identifier) => {
     request.onload = (evt) => {
         let target = document.querySelector("#questions");
         let json = JSON.parse(request.responseText);
-        console.log(json);
         let template = document.querySelector("#question-template");
         if (!template.textContent) {
             console.log("#question-template is missing");
@@ -124,18 +136,11 @@ let loadQuestions = (identifier) => {
     request.send();
     return;
 };
-let sendResponse = (identifier, presenterID, questionType, questionNumber, answer) => {
+let sendResponse = (json) => {
     let request = new XMLHttpRequest();
-    request.open("POST", "http://localhost:8080/api/v1/presenters/" + presenterID);
+    request.open("POST", "http://localhost:8080/api/v1/presenters/" + presentationID);
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.setRequestHeader("Content-Type", "application/json");
-    let questionResponse = new Response();
-    questionResponse.responderID = identifier;
-    questionResponse.presentationID = presenterID;
-    questionResponse.questionType = questionType;
-    questionResponse.number = questionNumber;
-    questionResponse.answer = answer;
-    let json = JSON.stringify(questionResponse);
     request.send(json);
 };
 window.onload = () => {

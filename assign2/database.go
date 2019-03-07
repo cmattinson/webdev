@@ -38,11 +38,11 @@ type Question struct {
 
 // Response represents a response to a question by a certain student
 type Response struct {
-	ResponderID    string `db:"responder_id"`
-	PresentationID int    `db:"presentation_id"`
-	Type           string `db:"type"`
-	Number         int    `db:"number"`
-	Answer         string `db:"answer"`
+	ResponderID    string `db:"responder_id" json:"responderID"`
+	PresentationID int    `db:"presentation_id" json:"presentationID"`
+	Type           string `db:"type" json:"questionType"`
+	Number         int    `db:"number" json:"questionNumber"`
+	Answer         string `db:"answer" json:"answer"`
 }
 
 // Presentation represents the data for each presentation
@@ -87,10 +87,6 @@ func OpenDatabase() (*Database, error) {
 
 	if err != nil {
 		return nil, fmt.Errorf("Open (%v): %v", connectionString, err)
-	}
-
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("Ping: %v", err)
 	}
 
 	log.Println("Connected to database successfully")
@@ -297,6 +293,24 @@ func (db *Database) GetResponses(responderID string, presentationID int) ([]Resp
 	}
 
 	return responses, nil
+}
+
+// GetResponse retrieves a single response from the database
+func (db *Database) GetResponse(responderID string, presentationID int, questionType string, questionNumber int) (Response, error) {
+	q := `SELECT responder_id, presentation_id, type, number, answer
+			FROM response
+			WHERE responder_id = $1
+			AND presentation_id = $2
+			AND type = $3
+			AND number = $4`
+
+	response := Response{}
+
+	if err := db.Get(&response, q, responderID, presentationID, questionType, questionNumber); err != nil {
+		return Response{}, fmt.Errorf("Select: %v", err)
+	}
+
+	return response, nil
 }
 
 // DeleteResponse will delete the requested response from the database

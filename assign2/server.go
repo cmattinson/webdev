@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -75,25 +76,27 @@ func main() {
 	router := mux.NewRouter()
 	// Default case, will be encoded in json
 	router.HandleFunc("/api/v1/presenters", handlers.authentication(logger(handlers.presentersListHandler))).
-		Methods("GET", "OPTIONS")
+		Methods("GET")
 	// Format is specified
 	router.HandleFunc("/api/v1/presenters.{format:(?:json|xml)}", handlers.authentication(logger(handlers.presentersListHandler))).
-		Methods("GET", "OPTIONS")
+		Methods("GET")
 
 	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.presenterHandler))).
-		Methods("GET", "OPTIONS")
+		Methods("GET")
 	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}.{format:(?:json|xml)}", handlers.authentication(logger(handlers.presenterHandler))).
-		Methods("GET", "OPTIONS")
+		Methods("GET")
 
 	router.HandleFunc("/api/v1/presenters/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.sendResponseHandler))).
-		Methods("POST", "PUT", "OPTIONS")
+		Methods("POST", "PUT")
 
-	router.HandleFunc("/api/v1/questions", handlers.authentication(logger(handlers.questionsHandler))).Methods("GET", "OPTIONS")
+	router.HandleFunc("/api/v1/questions", handlers.authentication(logger(handlers.questionsHandler))).Methods("GET")
 
 	router.HandleFunc("/api/v1/responses/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.getResponsesHandler))).
-		Methods("GET", "OPTIONS")
+		Methods("GET")
 	router.HandleFunc("/api/v1/responses/{presentation_id:[0-9]+}.{format:(?:json|xml)}", handlers.authentication(logger(handlers.getResponsesHandler))).
-		Methods("GET", "OPTIONS")
+		Methods("GET")
+
+	router.HandleFunc("/api/v1/responses/{presentation_id:[0-9]+}/{question_id}", handlers.authentication(logger(handlers.getResponseHandler))).Methods("GET")
 
 	router.HandleFunc("/api/v1/responses/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.deleteResponseHandler))).
 		Methods("DELETE", "OPTIONS")
@@ -316,6 +319,49 @@ func (h *Handler) sendResponseHandler(w http.ResponseWriter, r *http.Request) {
 	message := fmt.Sprintf("Response to %s %d sent", response.Type, response.Number)
 	AddCustomResponse(w, message, http.StatusOK, "None")
 	PrintResponsePayload(w, responderID, presentationID, response.Type, response.Number, response.Answer)
+}
+
+func (h *Handler) getResponseHandler(w http.ResponseWriter, r *http.Request) {
+	responderID := getIdentifierFromContext(r.Context())
+	presentationID, err := GetPresentationID(r)
+
+	if presentationID == -1 {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+	}
+
+	vars := mux.Vars(r)
+	questionID := vars["question_id"]
+
+	matchMC, _ := regexp.MatchString("mc[0-9]+", questionID)
+	matchOpen, _ := regexp.MatchString("open[0-9]+", questionID)
+
+	if !matchMC && !matchOpen {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		AddCustomResponse(w, questionID+" is not a valid question ID", http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
+	}
+
+	if matchMC {
+		questionType := "M/C"
+		split := strings.Split(questionID, "c")
+
+		questionNumber, err := strconv.Atoi(split[1])
+
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
+
+		log.Println(responderID, presentationID, questionType, questionNumber)
+
+		response, err := h.GetResponse(responderID, presentationID, questionType, questionNumber)
+		log.Println(response)
+		EncodeOutput(w, response, "json")
+	}
+
 }
 
 // Get the list of responses
