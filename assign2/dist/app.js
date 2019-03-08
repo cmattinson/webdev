@@ -53,27 +53,25 @@ let clickResponses = (evt) => {
     buttonResponses.className = "active";
 };
 let clickSubmitResponses = (evt) => {
-    for (let i = 0; i < 10; i++) {
-        let choiceName = "multChoice" + i;
-        let selection = document.querySelector("input[name=" + choiceName + "]:checked");
-        if (selection != null) {
-            let questionResponse = new Response();
-            questionResponse.responderID = identifier;
-            questionResponse.presentationID = presentationID;
-            questionResponse.questionType = "M/C";
-            questionResponse.number = i + 1;
-            questionResponse.answer = selection.value;
-            let json = JSON.stringify(questionResponse);
-            sendResponse(json);
-        }
+    let textAreas = document.querySelectorAll("textarea");
+    for (let i = 0; i < textAreas.length; i++) {
+        let textArea = textAreas[i];
+        let boxName = textArea.name;
+        let answer = textArea.value;
+        let questionNumber = parseQuestionNumber(boxName);
+        manageResponse(identifier, presentationID, "Open", questionNumber, answer);
     }
 };
 let clickRadioButton = (evt) => {
     let element = evt.target;
     let choiceName = element.name;
-    let questionNumber = parseInt(choiceName[choiceName.length - 1], 10);
-    questionNumber++;
+    let questionNumber = parseQuestionNumber(choiceName);
     manageResponse(identifier, presentationID, "M/C", questionNumber, element.value);
+};
+let parseQuestionNumber = (inputName) => {
+    let questionNumber = parseInt(inputName[inputName.length - 1], 10);
+    questionNumber++;
+    return questionNumber;
 };
 let loadPresentersList = (identifier) => {
     let request = new XMLHttpRequest();
@@ -138,9 +136,20 @@ let loadQuestions = (identifier) => {
         let sectionQuestions = document.querySelector("#questions-section");
         sectionQuestions.className = "active";
         let radioButtons = document.querySelectorAll("input[type=radio]");
+        let buttonGroupSet = new Set();
         for (let i = 0; i < radioButtons.length; i++) {
             let radioButton = radioButtons[i];
             radioButton.onclick = clickRadioButton;
+            buttonGroupSet.add(radioButton.name);
+        }
+        let iterator = buttonGroupSet.values();
+        for (let i = 0; i < buttonGroupSet.size; i++) {
+            checkRadioButton(iterator.next().value);
+        }
+        let textAreas = document.querySelectorAll("textarea");
+        for (let i = 0; i < textAreas.length; i++) {
+            let textArea = textAreas[i];
+            fillPreviousResponse(textArea.name);
         }
     };
     request.open("GET", "http://localhost:8080/api/v1/questions");
@@ -174,6 +183,41 @@ let manageResponse = (responderID, presentationID, questionType, questionNumber,
         }
         else {
             updateResponse(responseJSON);
+        }
+    };
+    let uri = "http://localhost:8080/api/v1/responses/" + presentationID + "/" + questionID;
+    request.open("GET", uri);
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.send();
+};
+let checkRadioButton = (buttonGroupName) => {
+    let request = new XMLHttpRequest();
+    let questionNumber = parseQuestionNumber(buttonGroupName);
+    let questionID = "mc" + questionNumber;
+    request.onload = (evt) => {
+        let json = JSON.parse(request.responseText);
+        let buttonGroup = document.querySelectorAll("input[name=" + buttonGroupName + "]");
+        for (let i = 0; i < buttonGroup.length; i++) {
+            let button = buttonGroup[i];
+            if (json.answer === button.value) {
+                button.checked = true;
+            }
+        }
+    };
+    let uri = "http://localhost:8080/api/v1/responses/" + presentationID + "/" + questionID;
+    request.open("GET", uri);
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.send();
+};
+let fillPreviousResponse = (textAreaName) => {
+    let request = new XMLHttpRequest();
+    let questionNumber = parseQuestionNumber(textAreaName);
+    let questionID = "open" + questionNumber;
+    request.onload = (evt) => {
+        let json = JSON.parse(request.responseText);
+        let textArea = document.querySelector("textarea[name=" + textAreaName + "]");
+        if (json.answer != "") {
+            textArea.value = json.answer;
         }
     };
     let uri = "http://localhost:8080/api/v1/responses/" + presentationID + "/" + questionID;

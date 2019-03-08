@@ -344,22 +344,30 @@ func (h *Handler) getResponseHandler(w http.ResponseWriter, r *http.Request) {
 		AddCustomResponse(w, questionID+" is not a valid question ID", http.StatusBadRequest, http.StatusText(http.StatusBadRequest))
 	}
 
+	var questionType string
+	var questionNumber int
+
+	// Response is a multiple choice question, parse question number
 	if matchMC {
-		questionType := "M/C"
+		questionType = "M/C"
 		split := strings.Split(questionID, "c")
-
-		questionNumber, err := strconv.Atoi(split[1])
-
-		if err != nil {
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-			return
-		}
-
-		log.Println(responderID, presentationID, questionType, questionNumber)
-
-		response, err := h.GetResponse(responderID, presentationID, questionType, questionNumber)
-		EncodeOutput(w, response, "json")
+		questionNumber, err = strconv.Atoi(split[1])
 	}
+
+	// Response is an open question, parse question number
+	if matchOpen {
+		questionType = "Open"
+		split := strings.Split(questionID, "n")
+		questionNumber, err = strconv.Atoi(split[1])
+	}
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	response, err := h.GetResponse(responderID, presentationID, questionType, questionNumber)
+	EncodeOutput(w, response, "json")
 }
 
 // Get the list of responses

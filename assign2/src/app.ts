@@ -80,22 +80,14 @@ let clickResponses = (evt: MouseEvent): void => {
 }
 
 let clickSubmitResponses = (evt: MouseEvent): void => {
-    // Loop through all 10 multiple choice questions
-    for (let i = 0; i < 10; i++) {
-        let choiceName = "multChoice" + i;
-        let selection = <HTMLInputElement>document.querySelector("input[name=" + choiceName + "]:checked")
+    let textAreas = document.querySelectorAll("textarea");
+    for (let i = 0; i < textAreas.length; i++) {
+        let textArea = textAreas[i];
+        let boxName = textArea.name;
+        let answer = textArea.value;
 
-        if (selection != null) {
-            let questionResponse = new Response();
-            questionResponse.responderID = identifier;
-            questionResponse.presentationID = presentationID;
-            questionResponse.questionType = "M/C";
-            questionResponse.number = i + 1; // Convert zero based indexing of template to actual question number
-            questionResponse.answer = selection.value;
-
-            let json = JSON.stringify(questionResponse);
-            sendResponse(json);
-        }
+        let questionNumber = parseQuestionNumber(boxName);
+        manageResponse(identifier, presentationID, "Open", questionNumber, answer);
     }
 }
 
@@ -104,10 +96,16 @@ let clickRadioButton = (evt: MouseEvent): void => {
     let choiceName = element.name;
 
     // choiceName would be in the form multChoice0, get the 0 from the end and increment it to get the question number
-    let questionNumber = parseInt(choiceName[choiceName.length - 1], 10);
-    questionNumber++;
+    let questionNumber = parseQuestionNumber(choiceName);
   
     manageResponse(identifier, presentationID, "M/C", questionNumber, element.value);
+}
+
+let parseQuestionNumber = (inputName: string): number => {
+    let questionNumber = parseInt(inputName[inputName.length - 1], 10);
+    questionNumber++;
+
+    return questionNumber;
 }
 
 let loadPresentersList = (identifier: string): void => {
@@ -196,11 +194,30 @@ let loadQuestions = (identifier: string): void => {
 
 
         let radioButtons = document.querySelectorAll("input[type=radio]");
+        let buttonGroupSet = new Set();
 
+        // Add click listeners to every radio button
         for (let i = 0; i < radioButtons.length; i++) {
             let radioButton = <HTMLInputElement>radioButtons[i];
-            
             radioButton.onclick = clickRadioButton;
+
+
+            // Add the button group, e.g. "multChoice0", to buttonGroupSet
+            buttonGroupSet.add(radioButton.name);
+        }      
+        
+        let iterator = buttonGroupSet.values();
+
+        // If the buttonGroup has a previous answer, check it upon loading question list
+        for (let i = 0; i < buttonGroupSet.size; i++) {
+            checkRadioButton(iterator.next().value);
+        }
+
+        let textAreas = document.querySelectorAll("textarea");
+
+        for (let i = 0; i < textAreas.length; i++) {
+            let textArea = <HTMLTextAreaElement>textAreas[i];
+            fillPreviousResponse(textArea.name);
         }
     }
 
@@ -232,7 +249,7 @@ let manageResponse = (responderID: string, presentationID: number, questionType:
         questionResponse.questionType = questionType;
         questionResponse.number = questionNumber;
         questionResponse.answer = answer;
-    
+
         let responseJSON = JSON.stringify(questionResponse);  
 
         // The response being sent is new
@@ -240,6 +257,59 @@ let manageResponse = (responderID: string, presentationID: number, questionType:
             sendResponse(responseJSON);
         } else { // The response being sent is an update
             updateResponse(responseJSON);
+        }
+    }
+
+    let uri = "http://localhost:8080/api/v1/responses/" + presentationID + "/" + questionID;
+
+    request.open("GET", uri);
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.send();
+}
+
+/**
+ * This function takes in a buttonGroup and checks the button corresponding to the previous answer if there is one
+ * @param buttonGroupName - The name of the button group, e.g. multChoice0
+ */
+let checkRadioButton = (buttonGroupName: string): void => {
+    let request = new XMLHttpRequest();
+
+    let questionNumber = parseQuestionNumber(buttonGroupName);
+    let questionID = "mc" + questionNumber;
+
+    request.onload = (evt: Event): void => {
+        let json = JSON.parse(request.responseText);
+        let buttonGroup = document.querySelectorAll("input[name=" + buttonGroupName + "]");
+
+        for (let i = 0; i < buttonGroup.length; i++) {
+            let button = <HTMLInputElement>buttonGroup[i];
+
+            if (json.answer === button.value) {
+                button.checked = true;
+            }
+        }
+    }
+
+    let uri = "http://localhost:8080/api/v1/responses/" + presentationID + "/" + questionID;
+
+    request.open("GET", uri);
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.send();
+}
+
+
+let fillPreviousResponse = (textAreaName: string): void => {
+    let request = new XMLHttpRequest();
+    
+    let questionNumber = parseQuestionNumber(textAreaName);
+    let questionID = "open" + questionNumber;
+
+    request.onload = (evt: Event): void => {
+        let json = JSON.parse(request.responseText);
+        let textArea = <HTMLTextAreaElement>document.querySelector("textarea[name=" + textAreaName + "]");
+
+        if (json.answer != "") {
+            textArea.value = json.answer;
         }
     }
 
