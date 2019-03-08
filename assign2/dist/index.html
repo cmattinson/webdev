@@ -22,7 +22,7 @@
                     <li><a>Time - {{=it.time}}</a></li>
                 </ul>
         </script>
-        <script id="question-template" type=text/x-dot-template">
+        <script id="question-template" type="text/x-dot-template">
             <table id="questions-table" class="table">
                 {{~it :value:index}}
                 <tr><td><a>{{=value.prompt}}</a></td></tr>
@@ -68,17 +68,29 @@
             <input id="id-box" type="text">
             <button id="submit-button" type="button">Submit</button>
         </section>
+        <section id="header-section">
+            <div class="container">
+                <h2>Presentation Feedback System</h2>
+                <nav>
+                    <ul>
+                        <li><a href="#">Presenters</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </section>
         <section id="error-page">
             <h2>Error</h2>
             <p id="error">
 
             </p>
         </section>
-        <section id="navigation">
-            <div class="topnav">
-                <a id="nav-presenters" class="active" href="#presenters">Presenters</a>
-                <a id="nav-responses" href="#responses">Responses</a>
-            </div>
+        <section id="combo-boxes-section">
+            <select id="other-presenters-select">
+                <option selected disabled hidden>Other Presenters</option>
+            </select>
+            <select id="other-presentations-select">
+                <option selected disabled hidden>Other Presentations</option>
+            </select>
         </section>
         <section id="presenters-section">
             <h2>Presenters</h2>

@@ -91,6 +91,8 @@ func main() {
 
 	router.HandleFunc("/api/v1/questions", handlers.authentication(logger(handlers.questionsHandler))).Methods("GET")
 
+	router.HandleFunc("/api/v1/presentations", handlers.authentication(logger(handlers.presentationListHandler))).Methods("GET")
+
 	router.HandleFunc("/api/v1/responses/{presentation_id:[0-9]+}", handlers.authentication(logger(handlers.getResponsesHandler))).
 		Methods("GET")
 	router.HandleFunc("/api/v1/responses/{presentation_id:[0-9]+}.{format:(?:json|xml)}", handlers.authentication(logger(handlers.getResponsesHandler))).
@@ -238,6 +240,24 @@ func (h *Handler) presenterHandler(w http.ResponseWriter, r *http.Request) {
 		EncodeOutput(w, presentation, "json")
 	} else {
 		EncodeOutput(w, presentation, format)
+	}
+}
+
+func (h *Handler) presentationListHandler(w http.ResponseWriter, r *http.Request) {
+	presentations, err := h.GetPresentations()
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	vars := mux.Vars(r)
+	format := vars["format"]
+
+	if format == "" {
+		EncodeOutput(w, presentations, "json")
+	} else {
+		EncodeOutput(w, presentations, format)
 	}
 }
 

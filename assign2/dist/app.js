@@ -4,14 +4,14 @@ let presentationID;
 let attachListeners = () => {
     let submit = document.querySelector("#submit-button");
     submit.onclick = clickSubmit;
-    let navPresenters = document.querySelector("#nav-presenters");
-    navPresenters.onclick = clickPresenters;
-    let navResponses = document.querySelector("#nav-responses");
-    navResponses.onclick = clickResponses;
     let presentersList = document.querySelector("#presenters");
     presentersList.onclick = clickPresenter;
     let submitResponses = document.querySelector("#submit-responses");
     submitResponses.onclick = clickSubmitResponses;
+    let otherPresentersSelect = document.querySelector("#other-presenters-select");
+    otherPresentersSelect.onchange = changeOtherPresentersSelect;
+    let otherPresentationsSelect = document.querySelector("#other-presentations-select");
+    otherPresentationsSelect.onchange = changeOtherPresentationsSelect;
 };
 let clickSubmit = (evt) => {
     let input = document.querySelector("#id-box");
@@ -21,36 +21,17 @@ let clickSubmit = (evt) => {
     }
     loadPresentersList(identifier);
 };
-let clickPresenters = (evt) => {
-    let sectionPresenters = document.querySelector("#presenters-section");
-    let sectionAuth = document.querySelector("#auth-section");
-    let sectionResponses = document.querySelector("#responses-section");
-    let buttonPresenters = document.querySelector("#nav-presenters");
-    let buttonResponses = document.querySelector("#nav-responses");
-    sectionPresenters.className = "active";
-    sectionResponses.className = "";
-    buttonPresenters.className = "active";
-    buttonResponses.className = "";
-};
 let clickPresenter = (evt) => {
     let target = evt.target;
-    let fragment = target.getAttribute("href");
-    let presID = fragment.charAt(1);
-    if (fragment != null) {
+    let idString = target.getAttribute("href");
+    if (idString != null) {
+        let presID = idString.charAt(1);
         presentationID = parseInt(presID, 10);
+        fillOtherPresentersBox(identifier);
+        fillOtherPresentationsBox(identifier);
         loadPresentationInfo(identifier, presID);
         loadQuestions(identifier);
     }
-};
-let clickResponses = (evt) => {
-    let sectionResponses = document.querySelector("#responses-section");
-    let sectionPresenters = document.querySelector("#presenters-section");
-    let buttonPresenters = document.querySelector("#nav-presenters");
-    let buttonResponses = document.querySelector("#nav-responses");
-    sectionResponses.className = "active";
-    sectionPresenters.className = "";
-    buttonPresenters.className = "";
-    buttonResponses.className = "active";
 };
 let clickSubmitResponses = (evt) => {
     let textAreas = document.querySelectorAll("textarea");
@@ -69,10 +50,54 @@ let clickRadioButton = (evt) => {
     let questionNumber = parseQuestionNumber(choiceName);
     manageResponse(identifier, presentationID, "M/C", questionNumber, element.value);
 };
+let changeOtherPresentersSelect = (evt) => {
+    let select = document.querySelector("#other-presenters-select");
+    presentationID = parseInt(select.value, 10);
+    loadPresentationInfo(identifier, select.value);
+    loadQuestions(identifier);
+};
+let changeOtherPresentationsSelect = (evt) => {
+    let select = document.querySelector("#other-presentations-select");
+    presentationID = parseInt(select.value, 10);
+    loadPresentationInfo(identifier, select.value);
+    loadQuestions(identifier);
+};
 let parseQuestionNumber = (inputName) => {
     let questionNumber = parseInt(inputName[inputName.length - 1], 10);
     questionNumber++;
     return questionNumber;
+};
+let fillOtherPresentersBox = (identifier) => {
+    let request = new XMLHttpRequest();
+    request.onload = (evt) => {
+        let select = document.querySelector("#other-presenters-select");
+        let json = JSON.parse(request.responseText);
+        json.forEach(presenter => {
+            let display = presenter.firstName + " " + presenter.lastName;
+            let value = presenter.presentationID;
+            select.options[select.options.length] = new Option(display, value);
+        });
+    };
+    request.open("GET", "http://localhost:8080/api/v1/presenters");
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.send();
+    return;
+};
+let fillOtherPresentationsBox = (identifier) => {
+    let request = new XMLHttpRequest();
+    request.onload = (evt) => {
+        let select = document.querySelector("#other-presentations-select");
+        let json = JSON.parse(request.responseText);
+        json.forEach(presentation => {
+            let display = presentation.title;
+            let value = presentation.presentationID;
+            select.options[select.options.length] = new Option(display, value);
+        });
+    };
+    request.open("GET", "http://localhost:8080/api/v1/presentations");
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.send();
+    return;
 };
 let loadPresentersList = (identifier) => {
     let request = new XMLHttpRequest();
@@ -87,14 +112,14 @@ let loadPresentersList = (identifier) => {
         let renderFunc = doT.template(template.textContent);
         target.innerHTML = renderFunc(json);
         let sectionAuth = document.querySelector("#auth-section");
+        let sectionHeader = document.querySelector("#header-section");
         let sectionPresenters = document.querySelector("#presenters-section");
-        let sectionNav = document.querySelector("#navigation");
         let sectionQuestions = document.querySelector("#questions-section");
         let sectionPresenterInfo = document.querySelector("#presenter-info-section");
         sectionAuth.className = "";
         sectionQuestions.className = "";
         sectionPresenterInfo.className = "";
-        sectionNav.className = "active";
+        sectionHeader.className = "active";
         sectionPresenters.className = "active";
     };
     request.open("GET", "http://localhost:8080/api/v1/presenters");
@@ -102,9 +127,9 @@ let loadPresentersList = (identifier) => {
     request.send();
     return;
 };
-let loadPresentationInfo = (identifier, fragment) => {
+let loadPresentationInfo = (identifier, idString) => {
     let request = new XMLHttpRequest();
-    let presentationID = parseInt(fragment, 10);
+    let presentationID = parseInt(idString, 10);
     request.onload = (evt) => {
         let target = document.querySelector("#presenter-info");
         let json = JSON.parse(request.responseText);
@@ -117,8 +142,10 @@ let loadPresentationInfo = (identifier, fragment) => {
         target.innerHTML = renderFunc(json);
         let sectionPresenter = document.querySelector("#presenter-info-section");
         let sectionPresenters = document.querySelector("#presenters-section");
+        let sectionBoxes = document.querySelector("#combo-boxes-section");
         sectionPresenters.className = "";
         sectionPresenter.className = "active";
+        sectionBoxes.className = "active";
     };
     let uri = "http://localhost:8080/api/v1/presenters/" + presentationID;
     request.open("GET", uri);

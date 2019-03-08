@@ -4,6 +4,7 @@
     "module": "none",           
     "strict": true,                           
     "outDir": "dist",
+    "noImplicitAny": false,
     "removeComments": true 
   }
 }

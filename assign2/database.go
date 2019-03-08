@@ -47,11 +47,11 @@ type Response struct {
 
 // Presentation represents the data for each presentation
 type Presentation struct {
-	PresentationID int    `db:"presentation_id"`
-	Title          string `db:"title"`
-	Date           string `db:"date"`
-	Time           string `db:"time"`
-	Identifier     string `db:"identifier"`
+	PresentationID int    `db:"presentation_id" json:"presentationID"`
+	Title          string `db:"title" json:"title"`
+	Date           string `db:"date" json:"date"`
+	Time           string `db:"time" json:"time"`
+	Identifier     string `db:"identifier" json:"identifier"`
 }
 
 // PresentationInfo will serve as a representation to the user
@@ -146,6 +146,19 @@ func (db *Database) GetPresentation(id int) (PresentationInfo, error) {
 	}
 
 	return presentation, nil
+}
+
+// GetPresentations obtains a list of all presentations
+func (db *Database) GetPresentations() ([]Presentation, error) {
+	q := `SELECT * FROM presentation`
+
+	presentations := []Presentation{}
+
+	if err := db.Select(&presentations, q); err != nil {
+		return nil, fmt.Errorf("Select: %v", err)
+	}
+
+	return presentations, nil
 }
 
 // GetQuestions gets a slice of all questions in the database

@@ -1,6 +1,9 @@
 let identifier: string;
 let presentationID: number;
 
+/**
+ * Used for storing responses from the API
+ */
 interface Response {
     responderID: string;
     presentationID: number;
@@ -9,24 +12,30 @@ interface Response {
     answer: string;
 }
 
+/**
+ * Attaches event listeners to HTML Elements
+ */
 let attachListeners = (): void => {
     let submit = <HTMLElement>document.querySelector("#submit-button");
     submit.onclick = clickSubmit;
-
-    let navPresenters = <HTMLElement>document.querySelector("#nav-presenters");
-    navPresenters.onclick = clickPresenters;
-
-    let navResponses = <HTMLElement>document.querySelector("#nav-responses");
-    navResponses.onclick = clickResponses;
 
     let presentersList = <HTMLElement>document.querySelector("#presenters");
     presentersList.onclick = clickPresenter;
 
     let submitResponses = <HTMLElement>document.querySelector("#submit-responses");
     submitResponses.onclick = clickSubmitResponses;
+
+    let otherPresentersSelect = <HTMLSelectElement>document.querySelector("#other-presenters-select");
+    otherPresentersSelect.onchange = changeOtherPresentersSelect;
+
+    let otherPresentationsSelect = <HTMLSelectElement>document.querySelector("#other-presentations-select");
+    otherPresentationsSelect.onchange = changeOtherPresentationsSelect;
 }
 
-// Event handler for the clicking of the Submit button on the authentication page
+/**
+ * Event listener for the Submit button on the authentication page
+ * @param evt Click event
+ */
 let clickSubmit = (evt: MouseEvent): void => {
     let input = <HTMLInputElement>document.querySelector("#id-box");
     identifier = input.value;
@@ -34,51 +43,32 @@ let clickSubmit = (evt: MouseEvent): void => {
     if (input == null) {
         return;
     }
-
     loadPresentersList(identifier);
 }
 
-let clickPresenters = (evt: MouseEvent): void => {
-    let sectionPresenters = <HTMLElement>document.querySelector("#presenters-section");
-    let sectionAuth = <HTMLElement>document.querySelector("#auth-section");
-    let sectionResponses = <HTMLElement>document.querySelector("#responses-section");
-
-    let buttonPresenters = <HTMLElement>document.querySelector("#nav-presenters");
-    let buttonResponses = <HTMLElement>document.querySelector("#nav-responses");
-    
-    sectionPresenters.className = "active";
-    sectionResponses.className = "";
-
-    buttonPresenters.className = "active";
-    buttonResponses.className = "";
-}
-
+/**
+ * Event listener for clicking a presenter in the presenters list
+ * @param evt Click event
+ */
 let clickPresenter = (evt: MouseEvent): void => {
     let target = <HTMLElement>evt.target;
-    let fragment = <string>target.getAttribute("href");
-    let presID = fragment.charAt(1);
 
-    if (fragment != null) {
+    let idString = <string>target.getAttribute("href");
+
+    if (idString != null) {
+        let presID = idString.charAt(1);
         presentationID = parseInt(presID, 10);
+        fillOtherPresentersBox(identifier);
+        fillOtherPresentationsBox(identifier);
         loadPresentationInfo(identifier, presID);
         loadQuestions(identifier);
     }
 }
 
-let clickResponses = (evt: MouseEvent): void => {
-    let sectionResponses = <HTMLElement>document.querySelector("#responses-section");
-    let sectionPresenters = <HTMLElement>document.querySelector("#presenters-section");
-
-    let buttonPresenters = <HTMLElement>document.querySelector("#nav-presenters");
-    let buttonResponses = <HTMLElement>document.querySelector("#nav-responses");
-
-    sectionResponses.className = "active";
-    sectionPresenters.className = "";
-
-    buttonPresenters.className = "";
-    buttonResponses.className = "active";
-}
-
+/**
+ * Event listener for the Save and Close button on the survey form
+ * @param evt 
+ */
 let clickSubmitResponses = (evt: MouseEvent): void => {
     let textAreas = document.querySelectorAll("textarea");
     for (let i = 0; i < textAreas.length; i++) {
@@ -92,6 +82,10 @@ let clickSubmitResponses = (evt: MouseEvent): void => {
     loadPresentersList(identifier);
 }
 
+/**
+ * Event listener for the radio buttons on the survey form
+ * @param evt Click event
+ */
 let clickRadioButton = (evt: MouseEvent): void => {
     let element = <HTMLInputElement>evt.target;
     let choiceName = element.name;
@@ -102,6 +96,36 @@ let clickRadioButton = (evt: MouseEvent): void => {
     manageResponse(identifier, presentationID, "M/C", questionNumber, element.value);
 }
 
+/**
+ * Event listener for a change of the other-presenters-select combo box
+ * @param evt Change event
+ */
+let changeOtherPresentersSelect = (evt: Event): void => {
+    let select = <HTMLSelectElement>document.querySelector("#other-presenters-select");
+    presentationID = parseInt(select.value, 10);
+    loadPresentationInfo(identifier, select.value);
+    loadQuestions(identifier);
+}
+
+/**
+ * Event listener for a change of the other-presentations-select combo box
+ * @param evt Change event
+ */
+let changeOtherPresentationsSelect = (evt: Event): void => {
+    let select = <HTMLSelectElement>document.querySelector("#other-presentations-select");
+    presentationID = parseInt(select.value, 10);
+    loadPresentationInfo(identifier, select.value);
+    loadQuestions(identifier);
+}
+
+/**
+ * Obtain the question number from either a radio button or text area
+ * @param inputName Radio button group name or text area name
+ * @example
+ * // returns 1
+ * parseQuestionNumber("multChoice0")
+ * @returns {Number} Returns the question number for passed in input
+ */
 let parseQuestionNumber = (inputName: string): number => {
     let questionNumber = parseInt(inputName[inputName.length - 1], 10);
     questionNumber++;
@@ -109,6 +133,63 @@ let parseQuestionNumber = (inputName: string): number => {
     return questionNumber;
 }
 
+/**
+ * Fills the other-presenters-select combo box with presenter's names
+ * @param identifier Current user's identifier
+ */
+let fillOtherPresentersBox = (identifier: string): void => {
+    let request = new XMLHttpRequest();
+
+    request.onload = (evt: Event): void => {
+        let select = <HTMLSelectElement>document.querySelector("#other-presenters-select");
+        let json = JSON.parse(request.responseText);
+
+        // Add each presenter's name to the combo box
+        json.forEach(presenter => {
+            let display = presenter.firstName + " " + presenter.lastName;
+            let value = presenter.presentationID;
+            
+            select.options[select.options.length] = new Option(display, value);
+        });
+    }
+    request.open("GET", "http://localhost:8080/api/v1/presenters");
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.send();
+
+    return;
+}
+
+/**
+ * Fills the other-presentations-select combo box with presentation titles
+ * @param identifier Current user's identifier
+ */
+let fillOtherPresentationsBox = (identifier: string): void => {
+    let request = new XMLHttpRequest();
+
+    request.onload = (evt: Event): void => {
+        let select = <HTMLSelectElement>document.querySelector("#other-presentations-select");
+        let json = JSON.parse(request.responseText);
+
+        // Add each presentation title to the combo box
+        json.forEach(presentation => {
+            let display = presentation.title;
+            let value = presentation.presentationID;
+
+            select.options[select.options.length] = new Option(display, value);
+        });
+    }
+
+    request.open("GET", "http://localhost:8080/api/v1/presentations");
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.send();
+
+    return;
+}
+
+/**
+ * Gets the list of presenters from the API and displays the list of presenters section
+ * @param identifier Current user's identifier
+ */
 let loadPresentersList = (identifier: string): void => {
     let request = new XMLHttpRequest();
 
@@ -126,14 +207,16 @@ let loadPresentersList = (identifier: string): void => {
         target.innerHTML = renderFunc(json);
 
         let sectionAuth = <HTMLElement>document.querySelector("#auth-section");
+        let sectionHeader = <HTMLElement>document.querySelector("#header-section");
         let sectionPresenters = <HTMLElement>document.querySelector("#presenters-section");
-        let sectionNav = <HTMLElement>document.querySelector("#navigation")
         let sectionQuestions = <HTMLElement>document.querySelector("#questions-section");
         let sectionPresenterInfo = <HTMLElement>document.querySelector("#presenter-info-section");
+
+        // Hide everyting except the header and presenter list
         sectionAuth.className = "";
         sectionQuestions.className = "";
         sectionPresenterInfo.className = "";
-        sectionNav.className = "active";
+        sectionHeader.className = "active";
         sectionPresenters.className = "active";
     }
 
@@ -144,9 +227,14 @@ let loadPresentersList = (identifier: string): void => {
     return;
 }
 
-let loadPresentationInfo = (identifier: string, fragment: string): void => {
+/**
+ * Obtain the presentation info for the selected presentation
+ * @param identifier Current user's identifier
+ * @param idString ID string for the presentation obtained from the href of the presenter link
+ */
+let loadPresentationInfo = (identifier: string, idString: string): void => {
     let request = new XMLHttpRequest();
-    let presentationID = parseInt(fragment, 10);
+    let presentationID = parseInt(idString, 10);
 
     request.onload = (evt: Event): void => {
         let target = <HTMLElement>document.querySelector("#presenter-info");
@@ -164,8 +252,10 @@ let loadPresentationInfo = (identifier: string, fragment: string): void => {
 
         let sectionPresenter = <HTMLElement>document.querySelector("#presenter-info-section");
         let sectionPresenters = <HTMLElement>document.querySelector("#presenters-section");
+        let sectionBoxes = <HTMLElement>document.querySelector("#combo-boxes-section");
         sectionPresenters.className = "";
         sectionPresenter.className = "active";
+        sectionBoxes.className = "active";
     }
 
     let uri = "http://localhost:8080/api/v1/presenters/" + presentationID;
@@ -177,6 +267,10 @@ let loadPresentationInfo = (identifier: string, fragment: string): void => {
     return;
 }
 
+/**
+ * Obtain the list of questions from the API
+ * @param identifier Current user's identifier
+ */
 let loadQuestions = (identifier: string): void => {
     let request = new XMLHttpRequest();
     
@@ -197,15 +291,16 @@ let loadQuestions = (identifier: string): void => {
         let sectionQuestions = <HTMLElement>document.querySelector("#questions-section");
         sectionQuestions.className = "active";
 
-
+        // Get all radio buttons on the survey form
         let radioButtons = document.querySelectorAll("input[type=radio]");
+
+        // Will hold all the names for the button groups
         let buttonGroupSet = new Set();
 
         // Add click listeners to every radio button
         for (let i = 0; i < radioButtons.length; i++) {
             let radioButton = <HTMLInputElement>radioButtons[i];
             radioButton.onclick = clickRadioButton;
-
 
             // Add the button group, e.g. "multChoice0", to buttonGroupSet
             buttonGroupSet.add(radioButton.name);
@@ -215,13 +310,17 @@ let loadQuestions = (identifier: string): void => {
 
         // If the buttonGroup has a previous answer, check it upon loading question list
         for (let i = 0; i < buttonGroupSet.size; i++) {
+            // Fill in previous answer for the current button group
             checkRadioButton(iterator.next().value);
         }
 
+        // Get all text areas on the survey form
         let textAreas = document.querySelectorAll("textarea");
 
         for (let i = 0; i < textAreas.length; i++) {
             let textArea = <HTMLTextAreaElement>textAreas[i];
+
+            // Fill in previous answer for the current open question
             fillPreviousResponse(textArea.name);
         }
     }
@@ -233,6 +332,14 @@ let loadQuestions = (identifier: string): void => {
     return;
 }
 
+/**
+ * POST or PUT a response to the API
+ * @param responderID Current user's identifier
+ * @param presentationID Presentation the response is being sent to
+ * @param questionType Type of question (M/C or Open)
+ * @param questionNumber Number of question
+ * @param answer Answer to question
+ */
 let manageResponse = (responderID: string, presentationID: number, questionType: string, questionNumber: number, answer: string): void => {
     let request = new XMLHttpRequest();
     let questionID: string;
@@ -268,14 +375,13 @@ let manageResponse = (responderID: string, presentationID: number, questionType:
     }
 
     let uri = "http://localhost:8080/api/v1/responses/" + presentationID + "/" + questionID;
-
     request.open("GET", uri);
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.send();
 }
 
 /**
- * This function takes in a buttonGroup and checks the button corresponding to the previous answer if there is one
+ * Takes in a buttonGroup and checks the button corresponding to the previous answer if there is one
  * @param buttonGroupName - The name of the button group, e.g. multChoice0
  */
 let checkRadioButton = (buttonGroupName: string): void => {
@@ -286,11 +392,14 @@ let checkRadioButton = (buttonGroupName: string): void => {
 
     request.onload = (evt: Event): void => {
         let json = JSON.parse(request.responseText);
+
+        // Select all radio buttons in the desired group
         let buttonGroup = document.querySelectorAll("input[name=" + buttonGroupName + "]");
 
         for (let i = 0; i < buttonGroup.length; i++) {
             let button = <HTMLInputElement>buttonGroup[i];
 
+            // Check the radio button corresponding to the previous answer
             if (json.answer === button.value) {
                 button.checked = true;
             }
@@ -298,14 +407,13 @@ let checkRadioButton = (buttonGroupName: string): void => {
     }
 
     let uri = "http://localhost:8080/api/v1/responses/" + presentationID + "/" + questionID;
-
     request.open("GET", uri);
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.send();
 }
 
 /**
- * This function will fill in the previous Open question responses
+ * Fill in the previous Open question response if there is one
  * @param textAreaName - Text area name corresponding to the Open question
  */
 let fillPreviousResponse = (textAreaName: string): void => {
@@ -331,7 +439,7 @@ let fillPreviousResponse = (textAreaName: string): void => {
 }
 
 /**
- * This function will send a new response to the API
+ * POST a new response to the API
  * @param responseJSON 
  */
 let sendResponse = (responseJSON: string): void => {
@@ -343,7 +451,7 @@ let sendResponse = (responseJSON: string): void => {
 }
 
 /**
- * This function will update a response in the API
+ * PUT an updated response to the API
  * @param responseJSON
  */
 let updateResponse = (responseJSON: string): void => {
