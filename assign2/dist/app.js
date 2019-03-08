@@ -68,6 +68,13 @@ let clickSubmitResponses = (evt) => {
         }
     }
 };
+let clickRadioButton = (evt) => {
+    let element = evt.target;
+    let choiceName = element.name;
+    let questionNumber = parseInt(choiceName[choiceName.length - 1], 10);
+    questionNumber++;
+    manageResponse(identifier, presentationID, "M/C", questionNumber, element.value);
+};
 let loadPresentersList = (identifier) => {
     let request = new XMLHttpRequest();
     request.onload = (evt) => {
@@ -130,13 +137,18 @@ let loadQuestions = (identifier) => {
         target.innerHTML = renderFunc(json);
         let sectionQuestions = document.querySelector("#questions-section");
         sectionQuestions.className = "active";
+        let radioButtons = document.querySelectorAll("input[type=radio]");
+        for (let i = 0; i < radioButtons.length; i++) {
+            let radioButton = radioButtons[i];
+            radioButton.onclick = clickRadioButton;
+        }
     };
     request.open("GET", "http://localhost:8080/api/v1/questions");
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.send();
     return;
 };
-let getResponse = (questionType, questionNumber) => {
+let manageResponse = (responderID, presentationID, questionType, questionNumber, answer) => {
     let request = new XMLHttpRequest();
     let questionID;
     if (questionType === "M/C") {
@@ -150,9 +162,21 @@ let getResponse = (questionType, questionNumber) => {
     }
     request.onload = (evt) => {
         let json = JSON.parse(request.responseText);
-        console.log(json);
+        let questionResponse = new Response();
+        questionResponse.responderID = responderID;
+        questionResponse.presentationID = presentationID;
+        questionResponse.questionType = questionType;
+        questionResponse.number = questionNumber;
+        questionResponse.answer = answer;
+        let responseJSON = JSON.stringify(questionResponse);
+        if (json.answer === "") {
+            sendResponse(responseJSON);
+        }
+        else {
+            updateResponse(responseJSON);
+        }
     };
-    let uri = "http://localhost:8080/api/v1/presenters/" + presentationID + "/" + questionID;
+    let uri = "http://localhost:8080/api/v1/responses/" + presentationID + "/" + questionID;
     request.open("GET", uri);
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.send();
@@ -160,6 +184,13 @@ let getResponse = (questionType, questionNumber) => {
 let sendResponse = (json) => {
     let request = new XMLHttpRequest();
     request.open("POST", "http://localhost:8080/api/v1/presenters/" + presentationID);
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.setRequestHeader("Content-Type", "application/json");
+    request.send(json);
+};
+let updateResponse = (json) => {
+    let request = new XMLHttpRequest();
+    request.open("PUT", "http://localhost:8080/api/v1/presenters/" + presentationID);
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.setRequestHeader("Content-Type", "application/json");
     request.send(json);

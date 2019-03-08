@@ -99,6 +99,17 @@ let clickSubmitResponses = (evt: MouseEvent): void => {
     }
 }
 
+let clickRadioButton = (evt: MouseEvent): void => {
+    let element = <HTMLInputElement>evt.target;
+    let choiceName = element.name;
+
+    // choiceName would be in the form multChoice0, get the 0 from the end and increment it to get the question number
+    let questionNumber = parseInt(choiceName[choiceName.length - 1], 10);
+    questionNumber++;
+  
+    manageResponse(identifier, presentationID, "M/C", questionNumber, element.value);
+}
+
 let loadPresentersList = (identifier: string): void => {
     let request = new XMLHttpRequest();
 
@@ -182,6 +193,15 @@ let loadQuestions = (identifier: string): void => {
 
         let sectionQuestions = <HTMLElement>document.querySelector("#questions-section");
         sectionQuestions.className = "active";
+
+
+        let radioButtons = document.querySelectorAll("input[type=radio]");
+
+        for (let i = 0; i < radioButtons.length; i++) {
+            let radioButton = <HTMLInputElement>radioButtons[i];
+            
+            radioButton.onclick = clickRadioButton;
+        }
     }
 
     request.open("GET", "http://localhost:8080/api/v1/questions");
@@ -191,7 +211,7 @@ let loadQuestions = (identifier: string): void => {
     return;
 }
 
-let getResponse = (questionType: string, questionNumber: number): void => {
+let manageResponse = (responderID: string, presentationID: number, questionType: string, questionNumber: number, answer: string): void => {
     let request = new XMLHttpRequest();
     let questionID: string;
     
@@ -205,10 +225,25 @@ let getResponse = (questionType: string, questionNumber: number): void => {
 
     request.onload = (evt: Event): void => {
         let json = JSON.parse(request.responseText);
-        console.log(json);
+        
+        let questionResponse = new Response();
+        questionResponse.responderID = responderID;
+        questionResponse.presentationID = presentationID;
+        questionResponse.questionType = questionType;
+        questionResponse.number = questionNumber;
+        questionResponse.answer = answer;
+    
+        let responseJSON = JSON.stringify(questionResponse);  
+
+        // The response being sent is new
+        if (json.answer === "") {
+            sendResponse(responseJSON);
+        } else { // The response being sent is an update
+            updateResponse(responseJSON);
+        }
     }
 
-    let uri = "http://localhost:8080/api/v1/presenters/" + presentationID + "/" + questionID;
+    let uri = "http://localhost:8080/api/v1/responses/" + presentationID + "/" + questionID;
 
     request.open("GET", uri);
     request.setRequestHeader("Authorization", "Bearer " + identifier);
@@ -218,6 +253,14 @@ let getResponse = (questionType: string, questionNumber: number): void => {
 let sendResponse = (json: string): void => {
     let request = new XMLHttpRequest();
     request.open("POST", "http://localhost:8080/api/v1/presenters/" + presentationID);
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.setRequestHeader("Content-Type", "application/json");
+    request.send(json);
+}
+
+let updateResponse = (json: string): void => {
+    let request = new XMLHttpRequest();
+    request.open("PUT", "http://localhost:8080/api/v1/presenters/" + presentationID);
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.setRequestHeader("Content-Type", "application/json");
     request.send(json)

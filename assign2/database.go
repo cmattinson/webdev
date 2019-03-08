@@ -232,16 +232,11 @@ func (db *Database) UpdateResponse(responderID string, presentationID int, quest
 	}
 
 	if respExists {
-		q := `UPDATE response SET
-		answer = $1
-		WHERE
-		responder_id = $2
-		AND
-		presentation_id = $3
-		AND
-		type = $4
-		AND
-		number = $5`
+		q := `UPDATE response SET answer = $1
+			WHERE responder_id = $2
+			AND presentation_id = $3
+			AND type = $4
+			AND number = $5`
 
 		_, err := db.Exec(q, answer, responderID, presentationID, questionType, number)
 

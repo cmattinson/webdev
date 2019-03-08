@@ -358,10 +358,8 @@ func (h *Handler) getResponseHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(responderID, presentationID, questionType, questionNumber)
 
 		response, err := h.GetResponse(responderID, presentationID, questionType, questionNumber)
-		log.Println(response)
 		EncodeOutput(w, response, "json")
 	}
-
 }
 
 // Get the list of responses
