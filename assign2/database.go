@@ -302,7 +302,9 @@ func (db *Database) GetResponse(responderID string, presentationID int, question
 	response := Response{}
 
 	if err := db.Get(&response, q, responderID, presentationID, questionType, questionNumber); err != nil {
-		return Response{}, fmt.Errorf("Select: %v", err)
+		unanswered := Response{}
+		unanswered.Answer = "unanswered"
+		return unanswered, fmt.Errorf("Get: %v", err)
 	}
 
 	return response, nil

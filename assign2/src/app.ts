@@ -89,6 +89,7 @@ let clickSubmitResponses = (evt: MouseEvent): void => {
         let questionNumber = parseQuestionNumber(boxName);
         manageResponse(identifier, presentationID, "Open", questionNumber, answer);
     }
+    loadPresentersList(identifier);
 }
 
 let clickRadioButton = (evt: MouseEvent): void => {
@@ -127,7 +128,11 @@ let loadPresentersList = (identifier: string): void => {
         let sectionAuth = <HTMLElement>document.querySelector("#auth-section");
         let sectionPresenters = <HTMLElement>document.querySelector("#presenters-section");
         let sectionNav = <HTMLElement>document.querySelector("#navigation")
+        let sectionQuestions = <HTMLElement>document.querySelector("#questions-section");
+        let sectionPresenterInfo = <HTMLElement>document.querySelector("#presenter-info-section");
         sectionAuth.className = "";
+        sectionQuestions.className = "";
+        sectionPresenterInfo.className = "";
         sectionNav.className = "active";
         sectionPresenters.className = "active";
     }
@@ -253,8 +258,10 @@ let manageResponse = (responderID: string, presentationID: number, questionType:
         let responseJSON = JSON.stringify(questionResponse);  
 
         // The response being sent is new
-        if (json.answer === "") {
+        if (json.answer === "unanswered") {
             sendResponse(responseJSON);
+        } else if (json.answer === answer) { // The answer is the same, do nothing
+            return;
         } else { // The response being sent is an update
             updateResponse(responseJSON);
         }
@@ -297,7 +304,10 @@ let checkRadioButton = (buttonGroupName: string): void => {
     request.send();
 }
 
-
+/**
+ * This function will fill in the previous Open question responses
+ * @param textAreaName - Text area name corresponding to the Open question
+ */
 let fillPreviousResponse = (textAreaName: string): void => {
     let request = new XMLHttpRequest();
     
@@ -320,20 +330,28 @@ let fillPreviousResponse = (textAreaName: string): void => {
     request.send();
 }
 
-let sendResponse = (json: string): void => {
+/**
+ * This function will send a new response to the API
+ * @param responseJSON 
+ */
+let sendResponse = (responseJSON: string): void => {
     let request = new XMLHttpRequest();
     request.open("POST", "http://localhost:8080/api/v1/presenters/" + presentationID);
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.setRequestHeader("Content-Type", "application/json");
-    request.send(json);
+    request.send(responseJSON);
 }
 
-let updateResponse = (json: string): void => {
+/**
+ * This function will update a response in the API
+ * @param responseJSON
+ */
+let updateResponse = (responseJSON: string): void => {
     let request = new XMLHttpRequest();
     request.open("PUT", "http://localhost:8080/api/v1/presenters/" + presentationID);
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.setRequestHeader("Content-Type", "application/json");
-    request.send(json)
+    request.send(responseJSON)
 }
 
 window.onload = (): void => {

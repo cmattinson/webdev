@@ -61,6 +61,7 @@ let clickSubmitResponses = (evt) => {
         let questionNumber = parseQuestionNumber(boxName);
         manageResponse(identifier, presentationID, "Open", questionNumber, answer);
     }
+    loadPresentersList(identifier);
 };
 let clickRadioButton = (evt) => {
     let element = evt.target;
@@ -88,7 +89,11 @@ let loadPresentersList = (identifier) => {
         let sectionAuth = document.querySelector("#auth-section");
         let sectionPresenters = document.querySelector("#presenters-section");
         let sectionNav = document.querySelector("#navigation");
+        let sectionQuestions = document.querySelector("#questions-section");
+        let sectionPresenterInfo = document.querySelector("#presenter-info-section");
         sectionAuth.className = "";
+        sectionQuestions.className = "";
+        sectionPresenterInfo.className = "";
         sectionNav.className = "active";
         sectionPresenters.className = "active";
     };
@@ -178,8 +183,11 @@ let manageResponse = (responderID, presentationID, questionType, questionNumber,
         questionResponse.number = questionNumber;
         questionResponse.answer = answer;
         let responseJSON = JSON.stringify(questionResponse);
-        if (json.answer === "") {
+        if (json.answer === "unanswered") {
             sendResponse(responseJSON);
+        }
+        else if (json.answer === answer) {
+            return;
         }
         else {
             updateResponse(responseJSON);
@@ -225,19 +233,19 @@ let fillPreviousResponse = (textAreaName) => {
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.send();
 };
-let sendResponse = (json) => {
+let sendResponse = (responseJSON) => {
     let request = new XMLHttpRequest();
     request.open("POST", "http://localhost:8080/api/v1/presenters/" + presentationID);
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.setRequestHeader("Content-Type", "application/json");
-    request.send(json);
+    request.send(responseJSON);
 };
-let updateResponse = (json) => {
+let updateResponse = (responseJSON) => {
     let request = new XMLHttpRequest();
     request.open("PUT", "http://localhost:8080/api/v1/presenters/" + presentationID);
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.setRequestHeader("Content-Type", "application/json");
-    request.send(json);
+    request.send(responseJSON);
 };
 window.onload = () => {
     attachListeners();
