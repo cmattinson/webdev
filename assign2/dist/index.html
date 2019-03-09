@@ -51,7 +51,7 @@
                 </div>
                 {{??}}
                 <div>
-                    <textarea name="open{{=index}}" rows="5" columns="100"></textarea>
+                    <textarea name="open{{=index}}" rows="10" cols="50"></textarea>
                 </div>
                 {{?}}
                 </td></tr>
@@ -63,20 +63,13 @@
         </script>
     </head>
     <body>
+        <section class="active" id="header-section">
+            <h2>Presentation Feedback System</h2>
+        </section>
         <section class="active" id="auth-section">
             <h2>Enter your identifier</h2> 
             <input id="id-box" type="text">
             <button id="submit-button" type="button">Submit</button>
-        </section>
-        <section id="header-section">
-            <div class="container">
-                <h2>Presentation Feedback System</h2>
-                <nav>
-                    <ul>
-                        <li><a href="#">Presenters</a></li>
-                    </ul>
-                </nav>
-            </div>
         </section>
         <section id="error-page">
             <h2>Error</h2>
@@ -95,11 +88,6 @@
         <section id="presenters-section">
             <h2>Presenters</h2>
             <p id="presenters">
-            </p>
-        </section>
-        <section id="responses-section">
-            <h2>Responses</h2>
-            <p id="responses-list">
             </p>
         </section>
         <section id="presenter-info-section">

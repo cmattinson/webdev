@@ -12,23 +12,19 @@ section.active {
 }
 
 ul {
-    list-style-type: none;
+    list-style-type: circle;
     margin: 0;
     padding: 0;
 }
 
-#navigation {
-    height: 50px;
-    background-color: #0d47a1;
-    font-size: 24px;
-    color: white;
-    padding: 15px;
+textarea {
+    resize: none;
+    padding-bottom: 10px;
 }
 
 .presenters-list a {
     color: black;
     text-align: left;
-    padding: 14px 16px;
     text-decoration: none;
     font-size: 17px;
     font-family: Arial, Helvetica, sans-serif;
@@ -36,6 +32,33 @@ ul {
 
 .presenter-info ul {
     display: block;
+}
+
+#header-section {
+    background-color: #0d47a1;
+    height: 50px;
+}
+
+#header-section h2 { 
+    color: white;
+    font-family: Arial, Helvetica, sans-serif;
+    padding: auto auto;
+    margin: auto auto;
+}
+
+#radio-buttons {
+    padding-bottom: 10px;
+}
+
+.container {
+    width: 80%;
+    margin: auto auto;
+    padding: auto auto;
+    background-color: #0d47a1;
+}
+
+.container h2 {
+    float: left;
 }
 
 input[type='radio']:after {
