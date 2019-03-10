@@ -19,6 +19,13 @@ let attachListeners = (): void => {
     let submit = <HTMLElement>document.querySelector("#submit-button");
     submit.onclick = clickSubmit;
 
+    let titleLinks = document.querySelectorAll("#title-items");
+
+    for (let i = 0; i < titleLinks.length; i++) {
+        let link = <HTMLElement>titleLinks[i];
+        link.onclick = clickTitleLink;
+    }
+    
     let presentersList = <HTMLElement>document.querySelector("#presenters");
     presentersList.onclick = clickPresenter;
 
@@ -30,92 +37,6 @@ let attachListeners = (): void => {
 
     let otherPresentationsSelect = <HTMLSelectElement>document.querySelector("#other-presentations-select");
     otherPresentationsSelect.onchange = changeOtherPresentationsSelect;
-}
-
-/**
- * Event listener for the Submit button on the authentication page
- * @param evt Click event
- */
-let clickSubmit = (evt: MouseEvent): void => {
-    let input = <HTMLInputElement>document.querySelector("#id-box");
-    identifier = input.value;
-
-    if (input == null) {
-        return;
-    }
-    loadPresentersList(identifier);
-}
-
-/**
- * Event listener for clicking a presenter in the presenters list
- * @param evt Click event
- */
-let clickPresenter = (evt: MouseEvent): void => {
-    let target = <HTMLElement>evt.target;
-
-    let idString = <string>target.getAttribute("href");
-
-    if (idString != null) {
-        let presID = idString.charAt(1);
-        presentationID = parseInt(presID, 10);
-        fillOtherPresentersBox(identifier);
-        fillOtherPresentationsBox(identifier);
-        loadPresentationInfo(identifier, presID);
-        loadQuestions(identifier);
-    }
-}
-
-/**
- * Event listener for the Save and Close button on the survey form
- * @param evt 
- */
-let clickSubmitResponses = (evt: MouseEvent): void => {
-    let textAreas = document.querySelectorAll("textarea");
-    for (let i = 0; i < textAreas.length; i++) {
-        let textArea = textAreas[i];
-        let boxName = textArea.name;
-        let answer = textArea.value;
-
-        let questionNumber = parseQuestionNumber(boxName);
-        manageResponse(identifier, presentationID, "Open", questionNumber, answer);
-    }
-    loadPresentersList(identifier);
-}
-
-/**
- * Event listener for the radio buttons on the survey form
- * @param evt Click event
- */
-let clickRadioButton = (evt: MouseEvent): void => {
-    let element = <HTMLInputElement>evt.target;
-    let choiceName = element.name;
-
-    // choiceName would be in the form multChoice0, get the 0 from the end and increment it to get the question number
-    let questionNumber = parseQuestionNumber(choiceName);
-  
-    manageResponse(identifier, presentationID, "M/C", questionNumber, element.value);
-}
-
-/**
- * Event listener for a change of the other-presenters-select combo box
- * @param evt Change event
- */
-let changeOtherPresentersSelect = (evt: Event): void => {
-    let select = <HTMLSelectElement>document.querySelector("#other-presenters-select");
-    presentationID = parseInt(select.value, 10);
-    loadPresentationInfo(identifier, select.value);
-    loadQuestions(identifier);
-}
-
-/**
- * Event listener for a change of the other-presentations-select combo box
- * @param evt Change event
- */
-let changeOtherPresentationsSelect = (evt: Event): void => {
-    let select = <HTMLSelectElement>document.querySelector("#other-presentations-select");
-    presentationID = parseInt(select.value, 10);
-    loadPresentationInfo(identifier, select.value);
-    loadQuestions(identifier);
 }
 
 /**
@@ -252,10 +173,8 @@ let loadPresentationInfo = (identifier: string, idString: string): void => {
 
         let sectionPresenter = <HTMLElement>document.querySelector("#presenter-info-section");
         let sectionPresenters = <HTMLElement>document.querySelector("#presenters-section");
-        let sectionBoxes = <HTMLElement>document.querySelector("#combo-boxes-section");
         sectionPresenters.className = "";
         sectionPresenter.className = "active";
-        sectionBoxes.className = "active";
     }
 
     let uri = "http://localhost:8080/api/v1/presenters/" + presentationID;
@@ -426,7 +345,7 @@ let fillPreviousResponse = (textAreaName: string): void => {
         let json = JSON.parse(request.responseText);
         let textArea = <HTMLTextAreaElement>document.querySelector("textarea[name=" + textAreaName + "]");
 
-        if (json.answer != "") {
+        if (json.answer != "unanswered") {
             textArea.value = json.answer;
         }
     }
@@ -440,7 +359,7 @@ let fillPreviousResponse = (textAreaName: string): void => {
 
 /**
  * POST a new response to the API
- * @param responseJSON 
+ * @param responseJSON Response content
  */
 let sendResponse = (responseJSON: string): void => {
     let request = new XMLHttpRequest();
@@ -452,7 +371,7 @@ let sendResponse = (responseJSON: string): void => {
 
 /**
  * PUT an updated response to the API
- * @param responseJSON
+ * @param responseJSON Response content
  */
 let updateResponse = (responseJSON: string): void => {
     let request = new XMLHttpRequest();
@@ -460,6 +379,45 @@ let updateResponse = (responseJSON: string): void => {
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.setRequestHeader("Content-Type", "application/json");
     request.send(responseJSON)
+}
+
+/**
+ * Show the combo boxes when the user is on the survey form page
+ */
+let showComboBoxes = (): void => {
+    let comboBox1 = <HTMLElement>document.querySelector("#other-presenters-select");
+    let comboBox2 = <HTMLElement>document.querySelector("#other-presentations-select");
+
+    comboBox1.className = "active";
+    comboBox2.className = "active";
+}
+
+/**
+ * Hide the combo boxes when the user is not on the survey form page
+ */
+let hideComboBoxes = (): void => {
+    let comboBox1 = <HTMLElement>document.querySelector("#other-presenters-select");
+    let comboBox2 = <HTMLElement>document.querySelector("#other-presentations-select");
+
+    comboBox1.className = "";
+    comboBox2.className = "";
+}
+
+/**
+ * Clears the combo boxes on logout to prevent loading options multiple times
+ */
+let clearComboBoxes = (): void => {
+    let comboBox1 = <HTMLSelectElement>document.querySelector("#other-presenters-select");
+    let comboBox2 = <HTMLSelectElement>document.querySelector("#other-presentations-select");
+
+    // Fabiano's answer on https://stackoverflow.com/questions/3364493/how-do-i-clear-all-options-in-a-dropdown-box
+    for (let i = comboBox1.options.length - 1; i >= 0; i--) {
+        comboBox1.remove(i);
+    }
+
+    for (let i = comboBox2.options.length - 1; i >= 0; i--) {
+        comboBox2.remove(i);
+    }
 }
 
 window.onload = (): void => {

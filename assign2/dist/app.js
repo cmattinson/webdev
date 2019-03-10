@@ -4,6 +4,11 @@ let presentationID;
 let attachListeners = () => {
     let submit = document.querySelector("#submit-button");
     submit.onclick = clickSubmit;
+    let titleLinks = document.querySelectorAll("#title-items");
+    for (let i = 0; i < titleLinks.length; i++) {
+        let link = titleLinks[i];
+        link.onclick = clickTitleLink;
+    }
     let presentersList = document.querySelector("#presenters");
     presentersList.onclick = clickPresenter;
     let submitResponses = document.querySelector("#submit-responses");
@@ -12,55 +17,6 @@ let attachListeners = () => {
     otherPresentersSelect.onchange = changeOtherPresentersSelect;
     let otherPresentationsSelect = document.querySelector("#other-presentations-select");
     otherPresentationsSelect.onchange = changeOtherPresentationsSelect;
-};
-let clickSubmit = (evt) => {
-    let input = document.querySelector("#id-box");
-    identifier = input.value;
-    if (input == null) {
-        return;
-    }
-    loadPresentersList(identifier);
-};
-let clickPresenter = (evt) => {
-    let target = evt.target;
-    let idString = target.getAttribute("href");
-    if (idString != null) {
-        let presID = idString.charAt(1);
-        presentationID = parseInt(presID, 10);
-        fillOtherPresentersBox(identifier);
-        fillOtherPresentationsBox(identifier);
-        loadPresentationInfo(identifier, presID);
-        loadQuestions(identifier);
-    }
-};
-let clickSubmitResponses = (evt) => {
-    let textAreas = document.querySelectorAll("textarea");
-    for (let i = 0; i < textAreas.length; i++) {
-        let textArea = textAreas[i];
-        let boxName = textArea.name;
-        let answer = textArea.value;
-        let questionNumber = parseQuestionNumber(boxName);
-        manageResponse(identifier, presentationID, "Open", questionNumber, answer);
-    }
-    loadPresentersList(identifier);
-};
-let clickRadioButton = (evt) => {
-    let element = evt.target;
-    let choiceName = element.name;
-    let questionNumber = parseQuestionNumber(choiceName);
-    manageResponse(identifier, presentationID, "M/C", questionNumber, element.value);
-};
-let changeOtherPresentersSelect = (evt) => {
-    let select = document.querySelector("#other-presenters-select");
-    presentationID = parseInt(select.value, 10);
-    loadPresentationInfo(identifier, select.value);
-    loadQuestions(identifier);
-};
-let changeOtherPresentationsSelect = (evt) => {
-    let select = document.querySelector("#other-presentations-select");
-    presentationID = parseInt(select.value, 10);
-    loadPresentationInfo(identifier, select.value);
-    loadQuestions(identifier);
 };
 let parseQuestionNumber = (inputName) => {
     let questionNumber = parseInt(inputName[inputName.length - 1], 10);
@@ -142,10 +98,8 @@ let loadPresentationInfo = (identifier, idString) => {
         target.innerHTML = renderFunc(json);
         let sectionPresenter = document.querySelector("#presenter-info-section");
         let sectionPresenters = document.querySelector("#presenters-section");
-        let sectionBoxes = document.querySelector("#combo-boxes-section");
         sectionPresenters.className = "";
         sectionPresenter.className = "active";
-        sectionBoxes.className = "active";
     };
     let uri = "http://localhost:8080/api/v1/presenters/" + presentationID;
     request.open("GET", uri);
@@ -251,7 +205,7 @@ let fillPreviousResponse = (textAreaName) => {
     request.onload = (evt) => {
         let json = JSON.parse(request.responseText);
         let textArea = document.querySelector("textarea[name=" + textAreaName + "]");
-        if (json.answer != "") {
+        if (json.answer != "unanswered") {
             textArea.value = json.answer;
         }
     };
@@ -273,6 +227,28 @@ let updateResponse = (responseJSON) => {
     request.setRequestHeader("Authorization", "Bearer " + identifier);
     request.setRequestHeader("Content-Type", "application/json");
     request.send(responseJSON);
+};
+let showComboBoxes = () => {
+    let comboBox1 = document.querySelector("#other-presenters-select");
+    let comboBox2 = document.querySelector("#other-presentations-select");
+    comboBox1.className = "active";
+    comboBox2.className = "active";
+};
+let hideComboBoxes = () => {
+    let comboBox1 = document.querySelector("#other-presenters-select");
+    let comboBox2 = document.querySelector("#other-presentations-select");
+    comboBox1.className = "";
+    comboBox2.className = "";
+};
+let clearComboBoxes = () => {
+    let comboBox1 = document.querySelector("#other-presenters-select");
+    let comboBox2 = document.querySelector("#other-presentations-select");
+    for (let i = comboBox1.options.length - 1; i >= 0; i--) {
+        comboBox1.remove(i);
+    }
+    for (let i = comboBox2.options.length - 1; i >= 0; i--) {
+        comboBox2.remove(i);
+    }
 };
 window.onload = () => {
     attachListeners();

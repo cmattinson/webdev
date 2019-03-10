@@ -1,15 +1,14 @@
 -- +goose Up
-insert into student (identifier, first_name, last_name) values ('test', 'Chris', 'Mattinson');
-insert into student (identifier, first_name, last_name) values ('cmTYdFRm', 'Nick', 'Boers');
-insert into student (identifier, first_name, last_name) values ('oyLCuRPs', 'Lottie', 'Krale');
-insert into student (identifier, first_name, last_name) values ('pvDVrBSe', 'Hannie', 'Hurran');
-insert into student (identifier, first_name, last_name) values ('dlZSdKVu', 'Helenka', 'Lacase');
-insert into student (identifier, first_name, last_name) values ('wqHXyZLe', 'Rosalynd', 'Nattriss');
-insert into student (identifier, first_name, last_name) values ('fqAGgODz', 'Heloise', 'McNysche');
-insert into student (identifier, first_name, last_name) values ('duCKrFLq', 'Orbadiah', 'Jecock');
-insert into student (identifier, first_name, last_name) values ('aeMEeTSq', 'Joan', 'Robers');
-insert into student (identifier, first_name, last_name) values ('orFQnNIe', 'Dreddy', 'Noel');
 
+-- Testing accounts
+insert into student (identifier, first_name, last_name) values ('test', 'Chris', 'Mattinson');
+insert into student (identifier, first_name, last_name) values ('nick', 'Nick', 'Boers');
+
+insert into student (identifier, first_name, last_name) values ('oyLCuRPs', 'Linus', 'Torvalds');
+insert into student (identifier, first_name, last_name) values ('pvDVrBSe', 'Ken', 'Thompson');
+insert into student (identifier, first_name, last_name) values ('dlZSdKVu', 'Larry', 'Wall');
+insert into student (identifier, first_name, last_name) values ('fqAGgODz', 'Yehuda', 'Katz');
+insert into student (identifier, first_name, last_name) values ('duCKrFLq', 'Rob', 'Pike');
 
 insert into question (type, number, prompt) 
 values ('M/C', 1, 'Preparedness: the presenter was adequately prepared.');
@@ -48,16 +47,25 @@ insert into question (type, number, prompt)
 values ('Open', 2, 'Provide any comments for your instructor.');
 
 insert into presentation (presentation_id, title, date, time, identifier) 
-values (1, 'An Introduction to Go Programming', '2019-01-31', '09:30', 'cmTYdFRm');
+values (1, 'An Introduction to Go Programming', '2019-01-31', '09:30', 'nick');
 
 insert into presentation (presentation_id, title, date, time, identifier)
-values (2, 'Restful API Design', '2019-02-08', '11:30', 'test');
+values (2, 'Restful API Design', '2019-04-01', '11:30', 'test');
 
 insert into presentation (presentation_id, title, date, time, identifier)
-values (3, 'Back End Development', '2019-02-09', '09:30', 'oyLCuRPs');
+values (3, 'Version Control with Git', '2019-04-02', '09:30', 'oyLCuRPs');
 
 insert into presentation (presentation_id, title, date, time, identifier)
-values (4, 'Front End Development', '2019-02-15', '10:30', 'pvDVrBSe');
+values (4, 'The UNIX Environment', '2019-04-03', '10:30', 'pvDVrBSe');
+
+insert into presentation (presentation_id, title, date, time, identifier)
+values (5, 'Scripting with Perl', '2019-04-04', '02:30', 'dlZSdKVu');
+
+insert into presentation (presentation_id, title, date, time, identifier)
+values (6, 'Ember.js - A Front End Framework', '2019-04-05', '11:30', 'fqAGgODz');
+
+insert into presentation (presentation_id, title, date, time, identifier)
+values (7, 'The Success of Golang', '2019-04-06', '03:30', 'duCKrFLq');
 
 -- +goose Down
 DELETE FROM student;

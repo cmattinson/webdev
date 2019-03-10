@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <title>Presentation Feedback System</title>
-        <link rel="stylesheet" type="text/css" href="style.css">
-        <script id="presenters-template" type="text/x-dot-template">
+
+<head>
+    <meta charset="utf-8">
+    <title>Presentation Feedback System</title>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script id="presenters-template" type="text/x-dot-template">
             <div class="presenters-list">
                 {{~it :value:index}}
                     <ul>
@@ -13,7 +14,7 @@
                 {{~}}
             </div>
         </script>
-        <script id="presenter-info-template" type="text/x-dot-template">
+    <script id="presenter-info-template" type="text/x-dot-template">
             <div class="presenter-info">
                 <ul>
                     <li><a>Title - {{=it.title}}</a></li>
@@ -22,7 +23,7 @@
                     <li><a>Time - {{=it.time}}</a></li>
                 </ul>
         </script>
-        <script id="question-template" type="text/x-dot-template">
+    <script id="question-template" type="text/x-dot-template">
             <table id="questions-table" class="table">
                 {{~it :value:index}}
                 <tr><td><a>{{=value.prompt}}</a></td></tr>
@@ -58,50 +59,63 @@
                 {{~}}
             <table>
         </script>
-        <script id="error-template" type="text/x-dot-template">
+    <script id="error-template" type="text/x-dot-template">
             <div> Error {{=it.statusCode}}</div>      
         </script>
-    </head>
-    <body>
-        <section class="active" id="header-section">
-            <h2>Presentation Feedback System</h2>
-        </section>
-        <section class="active" id="auth-section">
-            <h2>Enter your identifier</h2> 
-            <input id="id-box" type="text">
-            <button id="submit-button" type="button">Submit</button>
-        </section>
-        <section id="error-page">
-            <h2>Error</h2>
-            <p id="error">
+</head>
 
-            </p>
-        </section>
-        <section id="combo-boxes-section">
-            <select id="other-presenters-select">
-                <option selected disabled hidden>Other Presenters</option>
-            </select>
-            <select id="other-presentations-select">
-                <option selected disabled hidden>Other Presentations</option>
-            </select>
-        </section>
-        <section id="presenters-section">
-            <h2>Presenters</h2>
-            <p id="presenters">
-            </p>
-        </section>
-        <section id="presenter-info-section">
-            <h2>Presentation</h2>
-            <p id="presenter-info">
+<body>
+    <section id="header-section">
+        <div class="title-bar">
+            <ul id="title-items">
+                <li class="active"><b>Presentation Feedback System</b></li>
+                <li class="active"><a href="#all-presenters">All Presenters</a></li>
+                <li><select id="other-presenters-select">
+                        <option selected disabled hidden>Other Presenters</option>
+                    </select></li>
+                <li><select id="other-presentations-select">
+                        <option selected disabled hidden>Other Presentations</option>
+                    </select></li>
+                <li class="active"><a href="#log-out">Log Out</a></li>
+            </ul>
+        </div>
+    </section>
+    <section class="active" id="auth-section">
+        <div class="auth-box">
+            <ul class="auth-list">
+                <li>
+                    <h2>Presentation Feedback System</h2>
+                </li>
+                <li><input id="id-box" type="text" placeholder="Identifier"></li>
+                <li><button id="submit-button" type="button">Submit</button></li>
+            </ul>
+        </div>
+    </section>
+    <section id="error-page">
+        <h2>Error</h2>
+        <p id="error">
 
-            </p>
-        </section>
-        <section id="questions-section">
-            <p id="questions">
-            </p>
-            <button id="submit-responses" type="button">Save and Close</button>
-        </section>
-        <script src="doT.js"></script>
-        <script src="app.js"></script>
-    </body>
+        </p>
+    </section>
+    <section id="presenters-section">
+        <h1>Presenters</h1>
+        <p id="presenters">
+        </p>
+    </section>
+    <section id="presenter-info-section">
+        <h2>Presentation</h2>
+        <p id="presenter-info">
+
+        </p>
+    </section>
+    <section id="questions-section">
+        <p id="questions">
+        </p>
+        <button id="submit-responses" type="button">Save and Close</button>
+    </section>
+    <script src="doT.js"></script>
+    <script src="listeners.js"></script>
+    <script src="app.js"></script>
+</body>
+
 </html>

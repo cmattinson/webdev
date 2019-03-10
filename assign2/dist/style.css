@@ -12,7 +12,7 @@ section.active {
 }
 
 ul {
-    list-style-type: circle;
+    list-style-type: none;
     margin: 0;
     padding: 0;
 }
@@ -20,6 +20,137 @@ ul {
 textarea {
     resize: none;
     padding-bottom: 10px;
+}
+
+/* Authentication box inspired by this video: https://www.youtube.com/watch?v=qFzalHnpYgM */
+.auth-box {
+    position: absolute;
+    margin: auto;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 400px;
+    height: 200px;
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px 0 #000;
+}
+
+ul.auth-list {
+    list-style-type: none;
+    text-align: center;
+}
+
+ul.auth-list li {
+    width: 400px;
+    margin-bottom: 10px;
+}
+
+ul.auth-list li h2 {
+    padding-top: 15px;
+}
+
+#id-box {
+    width: 250px;
+    height: 25px;
+    text-align: center;
+    background-color: #d3d3d3;
+    font-size: 11pt;
+    border-radius: 5px;
+}
+
+button {
+    background-color: #0d47a1;
+    color: white;
+    border: none;
+    font-family: Arial, Helvetica, sans-serif;
+    border-radius: 5px;
+}
+
+#submit-button {
+    width: 100px;
+    font-size: 11pt;
+    padding: 10px 0px;
+}
+
+#submit-responses {
+    width: 125px;
+    font-size: 11px;
+    padding: 10px 5px;
+    float: right;
+    margin-bottom: 25px;
+    margin-right: 150px;
+}
+
+#header-section {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.title-bar {
+    width: 100%;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+#presenters-section {
+    padding-top: 50px;
+}
+
+#presenter-info-section {
+    padding-top: 50px;
+}
+
+.title-bar ul {
+    list-style-type: none;
+    margin: 0px;
+    padding: 0px;
+    text-align: center;
+    display: inline-block;
+    vertical-align: top;
+    overflow: hidden;
+    background-color: #0d47a1;
+}
+
+.title-bar ul li {
+    display: inline-block; vertical-align: middle;
+    font-family: Arial, Helvetica, sans-serif;
+    padding-right: 40px;
+}
+
+.title-bar ul li select.active {
+    display: block;
+    padding: 0px 0px;
+}
+
+.title-bar ul li select {
+    display: none;
+}
+
+.title-bar ul li:last-child {
+    padding-right: 0px;
+    padding-left: 100px;
+}
+
+.title-bar a, b {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+.title-bar b {
+    font-size: 24px;
+}
+
+.title-bar li a:hover {
+    background-color: #5472d3;
 }
 
 .presenters-list a {
@@ -34,15 +165,17 @@ textarea {
     display: block;
 }
 
+/* z-index prevents radio buttons from overlapping the header on scrolling
+   https://stackoverflow.com/questions/34367968/my-div-is-overlapping-my-header-when-scrolling
+*/
 #header-section {
     background-color: #0d47a1;
-    height: 50px;
+    z-index: 1000;
 }
 
 #header-section h2 { 
     color: white;
     font-family: Arial, Helvetica, sans-serif;
-    padding: auto auto;
     margin: auto auto;
 }
 
@@ -53,12 +186,15 @@ textarea {
 .container {
     width: 80%;
     margin: auto auto;
-    padding: auto auto;
     background-color: #0d47a1;
 }
 
 .container h2 {
     float: left;
+}
+
+#presenters-section h1 {
+    font-size: 24px;
 }
 
 input[type='radio']:after {
