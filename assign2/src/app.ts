@@ -1,3 +1,11 @@
+/**
+ * CMPT 315 - Assignment 2
+ * Author: Chris Mattinson
+ * 
+ * This handles the API requests and main functionality for the Presentation
+ * Feedback System
+ */
+
 let identifier: string;
 let presentationID: number;
 

@@ -1,6 +1,6 @@
 # -*- restclient -*-
 #
-# CMPT 315 - Assignment 1
+# CMPT 315 - Assignment 2
 # Author - Chris Mattinson
 #
 # This file tests the successful and unsuccessful requests
@@ -51,6 +51,14 @@ Authorization: Bearer test
 
 # Get the list of responses to the presenter
 GET http://localhost:8080/api/v1/responses/1.xml
+Authorization: Bearer test
+
+# Get a single multiple choice response
+GET http://localhost:8080/api/v1/responses/1/mc1
+Authorization: Bearer test
+
+# Get a single open response
+GET http://localhost:8080/api/v1/responses/1/open1
 Authorization: Bearer test
 
 # Delete the response for Multiple Choice 1

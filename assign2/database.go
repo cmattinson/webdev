@@ -1,5 +1,5 @@
 /*
-	CMPT 315 - Assignment 1
+	CMPT 315 - Assignment 2
 	Author: Chris Mattinson
 
 	This program handles database operations and accessess

@@ -1,8 +1,8 @@
 /*
-	CMPT 315 - Assignment 1
+	CMPT 315 - Assignment 2
 	Author: Chris Mattinson
 
-	This programs handles all of the requests and responses to/from the web server
+	This program handles all of the requests and responses to/from the web server
 */
 
 package main
