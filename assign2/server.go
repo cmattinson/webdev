@@ -74,6 +74,7 @@ func main() {
 	}
 
 	router := mux.NewRouter()
+
 	// Default case, will be encoded in json
 	router.HandleFunc("/api/v1/presenters", handlers.authentication(logger(handlers.presentersListHandler))).
 		Methods("GET")
@@ -195,6 +196,10 @@ func logger(next http.HandlerFunc) http.HandlerFunc {
 
 		fmt.Printf("%s\n", logJSON)
 	})
+}
+
+func (h *Handler) authenticate(w http.ResponseWriter, r *http.Request) {
+
 }
 
 // Handle getting the list of presenters

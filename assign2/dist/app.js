@@ -23,6 +23,46 @@ let parseQuestionNumber = (inputName) => {
     questionNumber++;
     return questionNumber;
 };
+let renderErrorPage = (json) => {
+    let target = document.querySelector("#error");
+    let template = document.querySelector("#error-template");
+    let sectionError = document.querySelector("#error-page");
+    let sectionAuth = document.querySelector("#auth-section");
+    let sectionHeader = document.querySelector("#header-section");
+    let sectionPresenters = document.querySelector("#presenters-section");
+    let sectionQuestions = document.querySelector("#questions-section");
+    let sectionPresenterInfo = document.querySelector("#presenter-info-section");
+    if (!template.textContent) {
+        console.log("#error-template is missing");
+        return;
+    }
+    let renderFunc = doT.template(template.textContent);
+    target.innerHTML = renderFunc(json);
+    sectionError.className = "active";
+    sectionAuth.className = "";
+    sectionQuestions.className = "";
+    sectionPresenterInfo.className = "";
+    sectionHeader.className = "";
+    sectionPresenters.className = "";
+};
+let testIsStudent = (identifier) => {
+    let request = new XMLHttpRequest();
+    request.onload = (evt) => {
+        let json = JSON.parse(request.responseText);
+        if (json.statusCode === 401) {
+            renderErrorPage(json);
+        }
+        else {
+            loadPresentersList(identifier);
+            fillOtherPresentersBox(identifier);
+            fillOtherPresentationsBox(identifier);
+        }
+    };
+    request.open("GET", "http://localhost:8080/api/v1/presenters");
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.send();
+    return;
+};
 let fillOtherPresentersBox = (identifier) => {
     let request = new XMLHttpRequest();
     request.onload = (evt) => {

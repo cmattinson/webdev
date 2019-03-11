@@ -55,6 +55,64 @@ let parseQuestionNumber = (inputName: string): number => {
 }
 
 /**
+ * Renders an error page based on an error response from the API
+ * @param json Error json
+ */
+let renderErrorPage = (json: string): void => {
+    let target = <HTMLElement>document.querySelector("#error");
+    let template = <HTMLElement>document.querySelector("#error-template");
+
+    let sectionError = <HTMLElement>document.querySelector("#error-page")
+    let sectionAuth = <HTMLElement>document.querySelector("#auth-section");
+    let sectionHeader = <HTMLElement>document.querySelector("#header-section");
+    let sectionPresenters = <HTMLElement>document.querySelector("#presenters-section");
+    let sectionQuestions = <HTMLElement>document.querySelector("#questions-section");
+    let sectionPresenterInfo = <HTMLElement>document.querySelector("#presenter-info-section");
+
+    if (!template.textContent) {
+        console.log("#error-template is missing");
+        return;
+    }
+
+    let renderFunc = doT.template(template.textContent);
+    target.innerHTML = renderFunc(json);
+
+    sectionError.className = "active";
+
+    // Hide everyting except the error page
+    sectionAuth.className = "";
+    sectionQuestions.className = "";
+    sectionPresenterInfo.className = "";
+    sectionHeader.className = "";
+    sectionPresenters.className = "";
+}
+
+/**
+ * Test if the user trying to log in is authenticated
+ * @param identifier Inputted identifier
+ */
+let testIsStudent = (identifier: string): void => {
+    let request = new XMLHttpRequest();
+
+    request.onload = (evt: Event): void => {
+        let json = JSON.parse(request.responseText);
+
+        if (json.statusCode === 401) {
+            renderErrorPage(json);
+        } else {
+            loadPresentersList(identifier);
+            fillOtherPresentersBox(identifier);
+            fillOtherPresentationsBox(identifier);
+        }
+    }
+    request.open("GET", "http://localhost:8080/api/v1/presenters");
+    request.setRequestHeader("Authorization", "Bearer " + identifier);
+    request.send();
+
+    return;
+}
+
+/**
  * Fills the other-presenters-select combo box with presenter's names
  * @param identifier Current user's identifier
  */
@@ -423,4 +481,3 @@ let clearComboBoxes = (): void => {
 window.onload = (): void => {
     attachListeners();
 }
-

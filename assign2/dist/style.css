@@ -22,6 +22,10 @@ textarea {
     padding-bottom: 10px;
 }
 
+h6 {
+    display: none;
+}
+
 /* Authentication box inspired by this video: https://www.youtube.com/watch?v=qFzalHnpYgM */
 .auth-box {
     position: absolute;
@@ -76,11 +80,12 @@ button {
 
 #submit-responses {
     width: 125px;
-    font-size: 11px;
+    font-size: 12px;
     padding: 10px 5px;
-    float: right;
+    float: left;
     margin-bottom: 25px;
-    margin-right: 150px;
+    margin-left: 300px;
+    cursor: pointer;
 }
 
 #header-section {
@@ -102,6 +107,10 @@ button {
     padding-top: 50px;
 }
 
+#presenters-section p div ul {
+    padding-bottom: 10px;
+}
+
 #presenter-info-section {
     padding-top: 50px;
 }
@@ -118,9 +127,10 @@ button {
 }
 
 .title-bar ul li {
-    display: inline-block; vertical-align: middle;
+    display: inline-block;
+    vertical-align: middle;
     font-family: Arial, Helvetica, sans-serif;
-    padding-right: 40px;
+    padding-right: 10px;
 }
 
 .title-bar ul li select.active {
@@ -132,9 +142,9 @@ button {
     display: none;
 }
 
-.title-bar ul li:last-child {
+/* https://www.w3schools.com/css/css_navbar.asp */
+.title-bar ul li.active:last-child {
     padding-right: 0px;
-    padding-left: 100px;
 }
 
 .title-bar a, b {
@@ -153,12 +163,13 @@ button {
     background-color: #5472d3;
 }
 
-.presenters-list a {
+.presenters-list ul a {
     color: black;
     text-align: left;
     text-decoration: none;
-    font-size: 17px;
+    font-size: 18px;
     font-family: Arial, Helvetica, sans-serif;
+    margin-bottom: 20px;
 }
 
 .presenter-info ul {
@@ -183,20 +194,7 @@ button {
     padding-bottom: 10px;
 }
 
-.container {
-    width: 80%;
-    margin: auto auto;
-    background-color: #0d47a1;
-}
-
-.container h2 {
-    float: left;
-}
-
-#presenters-section h1 {
-    font-size: 24px;
-}
-
+/* https://www.w3schools.com/howto/howto_css_custom_checkbox.asp */
 input[type='radio']:after {
     width: 15px;
     height: 15px;

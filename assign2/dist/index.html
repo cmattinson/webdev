@@ -22,6 +22,7 @@
                     <li><a>Date - {{=it.date}}</a></li>
                     <li><a>Time - {{=it.time}}</a></li>
                 </ul>
+            </div>
         </script>
     <script id="question-template" type="text/x-dot-template">
             <table id="questions-table" class="table">
@@ -60,12 +61,17 @@
             <table>
         </script>
     <script id="error-template" type="text/x-dot-template">
-            <div> Error {{=it.statusCode}}</div>      
+            <p> 
+                <h2>Error {{=it.statusCode}}</h2>
+
+                <h3>{{=it.message}}</h3>
+            </p>      
         </script>
 </head>
 
 <body>
     <section id="header-section">
+        <h6>Header</h6>
         <div class="title-bar">
             <ul id="title-items">
                 <li class="active"><b>Presentation Feedback System</b></li>
@@ -76,11 +82,12 @@
                 <li><select id="other-presentations-select">
                         <option selected disabled hidden>Other Presentations</option>
                     </select></li>
-                <li class="active"><a href="#log-out">Log Out</a></li>
+                <li class="active" class="right"><a href="#log-out">Log Out</a></li>
             </ul>
         </div>
     </section>
     <section class="active" id="auth-section">
+        <h6>Authentication</h6>
         <div class="auth-box">
             <ul class="auth-list">
                 <li>
@@ -92,7 +99,7 @@
         </div>
     </section>
     <section id="error-page">
-        <h2>Error</h2>
+        <h6>Error</h6>
         <p id="error">
 
         </p>
@@ -109,6 +116,7 @@
         </p>
     </section>
     <section id="questions-section">
+        <h2>Questions</h2>
         <p id="questions">
         </p>
         <button id="submit-responses" type="button">Save and Close</button>

@@ -6,21 +6,17 @@
 # This file tests the successful and unsuccessful requests
 # to the Presentation Feedback System API
 
-# Authenticate
-GET http://localhost:8080/
-Authorization: Bearer test
-
 # Gets the list of presenters (default path, output in JSON)
 GET http://localhost:8080/api/v1/presenters
 Authorization: Bearer test
 
 # Gets the list of presenters in XML
 GET http://localhost:8080/api/v1/presenters.xml
-Authorization: Bearer jqYPeRSj
+Authorization: Bearer test
 
 # Gets the list of presenters in JSON
 GET http://localhost:8080/api/v1/presenters.json
-Authorization: Bearer jqYPeRSj
+Authorization: Bearer test
 
 # Attempt to get the list of presenters as unauthorized user
 GET http://localhost:8080/api/v1/presenters
@@ -31,71 +27,15 @@ GET http://localhost:8080/api/v1/presenters
 
 # Gets presentation info for a presenter (Survey form, JSON default)
 GET http://localhost:8080/api/v1/presenters/1
-Authorization: Bearer jqYPeRSj
+Authorization: Bearer test
 
 # Gets presentation info in JSON
 GET http://localhost:8080/api/v1/presenters/2.json
-Authorization: Bearer jqYPeRSj
+Authorization: Bearer test
 
 # Gets presentation info in XML
 GET http://localhost:8080/api/v1/presenters/3.xml
-Authorization: Bearer jqYPeRSj
-
-# Sends a response to a question as the authenticated user
-# Will respond with bad request if the response already exists
-POST http://localhost:8080/api/v1/presenters/1
-Authorization: Bearer jqYPeRSj
-Content-Type: application/json
-
-{
-	"type": "M/C",
-	"number": 1,
-	"answer": "Neutral"
-}
-
-# Update the response above
-PUT http://localhost:8080/api/v1/presenters/1
-Authorization: Bearer jqYPeRSj
-Content-Type: application/json
-
-{
-	"type": "M/C",
-	"number": 1,
-	"answer": "Agree"
-}
-
-# Send a response to a different presenter
-POST http://localhost:8080/api/v1/presenters/2
-Authorization: Bearer jqYPeRSj
-Content-Type: application/json
-
-{
-	"type": "M/C",
-	"number": 1,
-	"answer": "Disagree"
-}
-
-# Send an Open question response
-POST http://localhost:8080/api/v1/presenters/1
-Authorization: Bearer jqYPeRSj
-Content-Type: application/json
-
-{
-	"type": "Open",
-	"number": 1,
-	"answer": "Presentation was interesting"
-}
-
-# Update an Open question response
-PUT http://localhost:8080/api/v1/presenters/1
-Authorization: Bearer jqYPeRSj
-Content-Type: application/json
-
-{
-	"type": "Open",
-	"number": 1,
-	"answer": "Presentation was interesting and informative"
-}
+Authorization: Bearer test
 
 # Get a single response
 GET http://localhost:8080/api/v1/responses/1/mc1
@@ -103,19 +43,19 @@ Authorization: Bearer test
 
 # Get the list of responses to the presenter (default JSON)
 GET http://localhost:8080/api/v1/responses/1
-Authorization: Bearer jqYPeRSj
+Authorization: Bearer test
 
 # Get the list of responses to the presenter
 GET http://localhost:8080/api/v1/responses/1.json
-Authorization: Bearer jqYPeRSj
+Authorization: Bearer test
 
 # Get the list of responses to the presenter
 GET http://localhost:8080/api/v1/responses/1.xml
-Authorization: Bearer jqYPeRSj
+Authorization: Bearer test
 
 # Delete the response for Multiple Choice 1
 DELETE http://localhost:8080/api/v1/responses/1
-Authorization: Bearer jqYPeRSj
+Authorization: Bearer test
 Content-Type: application/json
 
 {
@@ -125,7 +65,7 @@ Content-Type: application/json
 
 # Attempt to delete a response that doesn't exist
 DELETE http://localhost:8080/api/v1/responses/1
-Authorization: Bearer jqYPeRSj
+Authorization: Bearer test
 Content-Type: application/json
 
 {
@@ -135,7 +75,7 @@ Content-Type: application/json
 
 # Attempt to delete a response with no content
 DELETE http://localhost:8080/api/v1/responses/1
-Authorization: Bearer jqYPeRSj
+Authorization: Bearer test
 
 
 	
