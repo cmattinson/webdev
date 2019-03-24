@@ -1,0 +1,20 @@
+<div class="jumbo">
+  <div class="right tomster"></div>
+  <h2>Coaches</h2>
+  <p>Coaches of the playoff teams</p>
+</div>
+{{#each this.model as |coach|}}
+  <article class="coach">
+    <div class="details">
+      <h3>{{coach.name}}</h3>
+      <div class="detail team">
+        <span>Team:</span> {{coach.team}}
+      </div>
+      <div class="detail start">
+        <span>With team since:</span> {{coach.start}}
+      </div>
+    </div>
+  </article>
+{{/each}}
+
+{{outlet}}

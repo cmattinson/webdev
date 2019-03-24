@@ -1,0 +1,22 @@
+<div class="jumbo">
+  <div class="right tomster"></div>
+  <h2>Leading Scorers</h2>
+  <p>
+    These are the top performers on the playoff teams
+  </p>
+</div>
+{{#each this.model as |player|}}
+  <article class="player">
+    <div class="details">
+      <h3>{{player.name}}</h3>
+      <div class="detail team">
+        <span>Team:</span> {{player.team}}
+      </div>
+      <div class="detail points">
+        <span>Points:</span> {{player.points}}
+      </div>
+    </div>
+  </article>
+{{/each}}
+
+{{outlet}}

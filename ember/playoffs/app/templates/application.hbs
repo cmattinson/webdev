@@ -1,0 +1,20 @@
+<div class="container">
+  <div class="menu">
+    {{#link-to "index"}}
+      <h1>
+        <em>Stanley Cup Playoffs</em>
+      </h1>
+    {{/link-to}}
+    <div class="links">
+      {{#link-to "players" class="menu-players"}}
+        Players
+      {{/link-to}}
+      {{#link-to "coaches" class="menu-coaches"}}
+        Coaches
+      {{/link-to}}
+    </div>
+  </div>
+  <div class="body">
+    {{outlet}}
+  </div>
+</div>

@@ -1,0 +1,36 @@
+<div class="jumbo">
+  <div class="right tomster"></div>
+  <h2>Playoff Chances</h2>
+  <p>
+    These are the playoff chances for NHL teams for the week of March 20th
+  </p>
+</div>
+{{#each this.model as |team|}}
+  <article class="team">
+    <div class="details">
+      <h3>{{team.name}}</h3>
+      <div class="detail chance">
+        <span>Chance:</span> {{team.chance}}
+      </div>
+      <div class="detail record">
+        <span>Record:</span> {{team.record}}
+      </div>
+      <div class="detail cupChance">
+        <span>Win Stanley Cup:</span> {{team.cupChance}}
+      </div>
+      <div class="detail pointLeader">
+        <span>Scoring Leader: </span>
+        {{#link-to "players" class="menu-players"}}
+          {{team.pointLeader}}
+        {{/link-to}}
+      </div>
+      <div class="detail coach">
+        <span>Coach: </span>
+        {{#link-to "coaches" class="menu-coaches"}}
+          {{team.coach}}
+        {{/link-to}}
+      </div>
+    </div>
+  </article>
+{{/each}}
+{{outlet}}
